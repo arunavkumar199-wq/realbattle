@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#FF6B00">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RealBattle</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  font-family:'Rajdhani',sans-serif;background:#07070f;overflow:hidden;position:relative;}
+.bg{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 90% 60% at 15% 85%,rgba(255,100,0,.14),transparent 55%),
+             radial-gradient(ellipse 70% 50% at 85% 15%,rgba(255,30,30,.09),transparent 55%),#07070f;}
+.grid{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,.01) 3px,rgba(255,255,255,.01) 4px);}
+.ptc{position:fixed;inset:0;z-index:1;pointer-events:none;}
+.pt{position:absolute;border-radius:50%;animation:pt linear infinite;}
+@keyframes pt{0%{transform:translateY(105vh);opacity:0;}10%{opacity:.8;}90%{opacity:.4;}100%{transform:translateY(-50px);opacity:0;}}
+.wrap{position:relative;z-index:10;width:92%;max-width:390px;}
+.logo{text-align:center;margin-bottom:32px;}
+.logo-icon{font-size:52px;display:block;filter:drop-shadow(0 0 18px #FF6B00);animation:glow 2s ease-in-out infinite;}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 18px #FF6B00);}50%{filter:drop-shadow(0 0 40px #FF6B00);}}
+.logo h1{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:8px;
+  background:linear-gradient(135deg,#FF6B00,#FF4500,#FF2200);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;margin-top:-6px;}
+.logo p{color:#666;font-size:11px;letter-spacing:5px;margin-top:2px;}
+.card{background:#0f0f1c;border:1px solid rgba(255,255,255,.07);border-radius:20px;
+  padding:26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.tabs{display:flex;background:#080812;border-radius:11px;padding:4px;margin-bottom:22px;
+  border:1px solid rgba(255,255,255,.05);}
+.tb{flex:1;padding:11px;text-align:center;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:700;color:#555;transition:all .25s;letter-spacing:2px;}
+.tb.on{background:linear-gradient(135deg,#FF6B00,#FF4500);color:#fff;
+  box-shadow:0 4px 15px rgba(255,107,0,.35);}
+.fg{margin-bottom:14px;}
+.fg label{display:block;color:#555;font-size:10px;letter-spacing:3px;margin-bottom:7px;font-weight:600;}
+.fg input{width:100%;background:#080812;border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:15px 18px;color:#fff;font-size:15px;
+  font-family:'Rajdhani',sans-serif;font-weight:600;outline:none;transition:all .25s;}
+.fg input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.12);}
+.fg input::placeholder{color:#333;}
+.btn{width:100%;padding:17px;margin-top:6px;
+  background:linear-gradient(135deg,#FF6B00,#FF4500);border:none;border-radius:13px;
+  color:#fff;font-size:16px;font-weight:700;font-family:'Rajdhani',sans-serif;
+  letter-spacing:3px;cursor:pointer;box-shadow:0 6px 25px rgba(255,107,0,.4);transition:all .15s;}
+.btn:active{transform:scale(.97);}
+.btn:disabled{opacity:.5;}
+.msg{margin-top:14px;padding:13px;border-radius:11px;font-size:13px;font-weight:600;
+  text-align:center;display:none;letter-spacing:.5px;}
+.msg.err{background:rgba(255,30,30,.12);border:1px solid rgba(255,30,30,.25);color:#ff6666;display:block;}
+.msg.ok{background:rgba(0,200,80,.12);border:1px solid rgba(0,200,80,.25);color:#44ff88;display:block;}
+.ld{display:none;text-align:center;margin-top:12px;color:#FF6B00;font-size:12px;letter-spacing:3px;}
+.sp{display:inline-block;width:16px;height:16px;border:2px solid #333;
+  border-top:2px solid #FF6B00;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ver{text-align:center;color:#222;font-size:10px;letter-spacing:3px;margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid"></div>
+<div class="ptc" id="ptc"></div>
+<div class="wrap">
+  <div class="logo">
+    <span class="logo-icon">⚔️</span>
+    <h1>REALBATTLE</h1>
+    <p>REAL WORLD AR BATTLE · INDIA</p>
+  </div>
+  <div class="card">
+    <div class="tabs">
+      <div class="tb on" id="tL" onclick="sw('login')">LOGIN</div>
+      <div class="tb" id="tR" onclick="sw('reg')">REGISTER</div>
+    </div>
+    <div id="fL">
+      <div class="fg"><label>USERNAME</label><input id="lU" type="text" placeholder="Enter username" autocomplete="off"></div>
+      <div class="fg"><label>PASSWORD</label><input id="lP" type="password" placeholder="Enter password"></div>
+      <button class="btn" id="bL" onclick="doLogin()">⚔ ENTER BATTLE</button>
+    </div>
+    <div id="fR" style="display:none">
+      <div class="fg"><label>USERNAME</label><input id="rU" type="text" placeholder="Choose username (letters/numbers)" maxlength="18" autocomplete="off"></div>
+      <div class="fg"><label>EMAIL</label><input id="rE" type="email" placeholder="Your email"></div>
+      <div class="fg"><label>PASSWORD</label><input id="rP" type="password" placeholder="Min 6 characters"></div>
+      <button class="btn" id="bR" onclick="doReg()">🔥 CREATE ACCOUNT</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="ld" id="ld"><span class="sp"></span>Please wait...</div>
+  </div>
+  <p class="ver">v1.0 · REALBATTLE INDIA</p>
+</div>
+<script>
+// particles
+const pc=document.getElementById('ptc');
+for(let i=0;i<22;i++){
+  const p=document.createElement('div');p.className='pt';
+  const sz=Math.random()*3+1;
+  p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;
+    background:hsl(${Math.random()*30+10},100%,60%);
+    animation-duration:${Math.random()*10+8}s;animation-delay:${Math.random()*10}s;`;
+  pc.appendChild(p);
+}
+
+function sw(t){
+  tap();vib(20);
+  const isL=t==='login';
+  document.getElementById('fL').style.display=isL?'block':'none';
+  document.getElementById('fR').style.display=isL?'none':'block';
+  document.getElementById('tL').classList.toggle('on',isL);
+  document.getElementById('tR').classList.toggle('on',!isL);
+  clrMsg();
+}
+function showMsg(m,t){const e=document.getElementById('msg');e.textContent=m;e.className='msg '+t;}
+function clrMsg(){document.getElementById('msg').className='msg';}
+function setLd(on,bid){
+  document.getElementById('ld').style.display=on?'block':'none';
+  document.getElementById(bid).disabled=on;
+}
+
+async function doReg(){
+  tap();vib(25);
+  const u=document.getElementById('rU').value.trim();
+  const e=document.getElementById('rE').value.trim();
+  const p=document.getElementById('rP').value;
+  if(!u||!e||!p){showMsg('⚠ Fill all fields','err');return;}
+  if(u.length<3){showMsg('⚠ Username min 3 chars','err');return;}
+  if(!/^[a-zA-Z0-9_]+$/.test(u)){showMsg('⚠ Username: only letters, numbers, _','err');return;}
+  if(p.length<6){showMsg('⚠ Password min 6 chars','err');return;}
+  setLd(true,'bR');
+  try{
+    const{data:ex}=await supabase.from('players').select('username').eq('username',u).maybeSingle();
+    if(ex){showMsg('❌ Username taken, choose another','err');setLd(false,'bR');return;}
+    const{data,error}=await supabase.auth.signUp({email:e,password:p,options:{data:{username:u}}});
+    if(error)throw error;
+    await supabase.from('players').insert({
+      id:data.user.id,username:u,email:e,
+      coins:500,total_matches:0,wins:0,kills:0,level:1,
+      selected_guns:['desert','m1887','ump']
+    });
+    showMsg('✅ Account created! Login karo','ok');
+    vib([60,30,80]);
+    setTimeout(()=>sw('login'),2000);
+  }catch(err){showMsg('❌ '+(err.message||'Error. Try again.'),'err');}
+  setLd(false,'bR');
+}
+
+async function doLogin(){
+  tap();vib(25);
+  const u=document.getElementById('lU').value.trim();
+  const p=document.getElementById('lP').value;
+  if(!u||!p){showMsg('⚠ Fill all fields','err');return;}
+  setLd(true,'bL');
+  try{
+    const{data:pl}=await supabase.from('players').select('email,id').eq('username',u).maybeSingle();
+    if(!pl){showMsg('❌ Username not found','err');setLd(false,'bL');return;}
+    const{data,error}=await supabase.auth.signInWithPassword({email:pl.email,password:p});
+    if(error)throw error;
+    localStorage.setItem('rb_uid',data.user.id);
+    localStorage.setItem('rb_un',u);
+    showMsg('✅ Welcome '+u+'!','ok');
+    vib([50,30,100]);
+    setTimeout(()=>{window.location.href='home.html';},900);
+  }catch(err){showMsg('❌ Wrong password','err');}
+  setLd(false,'bL');
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(document.getElementById('fL').style.display!=='none')doLogin();
+  else doReg();
+});
+
+window.addEventListener('load',async()=>{
+  const{data:{session}}=await supabase.auth.getSession();
+  if(session)window.location.href='home.html';
+});
+</script>
+</body>
+</html>
