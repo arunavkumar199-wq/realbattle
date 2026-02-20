@@ -1,6 +1,6 @@
 // YAHAN APNA SUPABASE URL AUR KEY DALO
-const SUPABASE_URL = 'APNA_URL_YAHAN';   // https://xxxx.supabase.co
-const SUPABASE_KEY = 'APNI_KEY_YAHAN';   // long string
+const SUPABASE_URL = 'https://azxnvrbjqszzcuekcbqs.supabase.co';   // https://xxxx.supabase.co
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6eG52cmJqcXN6emN1ZWtjYnFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MTU3NzgsImV4cCI6MjA4NzE5MTc3OH0.5onT-qjNZCXCWts-i79rGylroTOLk57yMoyEb-EwzYI';   // long string
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: { params: { eventsPerSecond: 30 } }
