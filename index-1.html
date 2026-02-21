@@ -1,0 +1,2845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Strike Zone AR</title>
+<style>
+/* ============================================================
+   GLOBAL RESET & BASE
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:'Segoe UI',sans-serif;color:#fff;touch-action:none;}
+:root{
+  --orange:#FF6B35;--gold:#FFD700;--red:#FF3333;--green:#33FF88;
+  --blue:#00D4FF;--purple:#9B59B6;--dark:#0a0a0f;--panel:rgba(0,0,0,0.75);
+  --border:rgba(255,107,53,0.4);--text-muted:#aaa;
+  --btn-h:56px;--radius:12px;
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen{position:fixed;inset:0;display:none;z-index:10;}
+.screen.active{display:flex;flex-direction:column;}
+.screen-center{justify-content:center;align-items:center;}
+
+/* ============================================================
+   SPLASH SCREEN
+   ============================================================ */
+#screen-splash{background:linear-gradient(135deg,#0a0a0f 0%,#1a0a1f 50%,#0a0f1a 100%);justify-content:center;align-items:center;flex-direction:column;}
+.splash-logo{font-size:3rem;font-weight:900;letter-spacing:4px;color:var(--orange);text-shadow:0 0 30px rgba(255,107,53,0.8),0 0 60px rgba(255,107,53,0.4);}
+.splash-sub{font-size:0.9rem;letter-spacing:8px;color:var(--blue);margin-top:8px;text-transform:uppercase;}
+.splash-loader{width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:40px;overflow:hidden;}
+.splash-loader-bar{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:3px;animation:loadbar 2s ease-in-out forwards;}
+@keyframes loadbar{0%{width:0}60%{width:80%}100%{width:100%}}
+.splash-version{position:absolute;bottom:30px;color:rgba(255,255,255,0.3);font-size:0.75rem;}
+
+/* ============================================================
+   LOGIN / REGISTER SCREENS
+   ============================================================ */
+#screen-login,#screen-register{
+  background:linear-gradient(135deg,#0a0a0f 0%,#0f0a1a 100%);
+  justify-content:center;align-items:center;padding:20px;
+}
+.auth-box{width:100%;max-width:380px;background:rgba(20,20,35,0.95);border:1px solid var(--border);border-radius:20px;padding:30px 24px;backdrop-filter:blur(20px);}
+.auth-logo{text-align:center;margin-bottom:24px;}
+.auth-logo h1{font-size:2rem;font-weight:900;color:var(--orange);letter-spacing:3px;}
+.auth-logo p{color:var(--blue);font-size:0.75rem;letter-spacing:4px;margin-top:4px;}
+.auth-title{font-size:1.2rem;font-weight:700;margin-bottom:20px;color:#fff;}
+.input-group{margin-bottom:16px;}
+.input-label{font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;}
+.game-input{width:100%;height:var(--btn-h);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);color:#fff;font-size:1rem;padding:0 16px;outline:none;transition:border-color 0.2s;}
+.game-input:focus{border-color:var(--orange);}
+.game-input::placeholder{color:rgba(255,255,255,0.2);}
+.btn{height:var(--btn-h);border:none;border-radius:var(--radius);font-size:1rem;font-weight:700;cursor:pointer;width:100%;letter-spacing:1px;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden;-webkit-user-select:none;user-select:none;}
+.btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background 0.15s;}
+.btn:active::after{background:rgba(255,255,255,0.15);}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg,var(--orange),#ff8c42);color:#fff;box-shadow:0 4px 20px rgba(255,107,53,0.4);}
+.btn-primary:active{box-shadow:0 2px 10px rgba(255,107,53,0.3);}
+.btn-secondary{background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.15);}
+.btn-blue{background:linear-gradient(135deg,#006080,var(--blue));color:#fff;}
+.btn-green{background:linear-gradient(135deg,#006040,var(--green));color:#fff;}
+.btn-red{background:linear-gradient(135deg,#600010,var(--red));color:#fff;}
+.btn-gold{background:linear-gradient(135deg,#8B6914,var(--gold));color:#000;}
+.auth-switch{text-align:center;margin-top:16px;color:var(--text-muted);font-size:0.9rem;}
+.auth-switch a{color:var(--orange);text-decoration:none;font-weight:700;}
+.error-msg{background:rgba(255,51,51,0.15);border:1px solid rgba(255,51,51,0.4);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:#ff6666;margin-bottom:12px;display:none;}
+
+/* ============================================================
+   HOME SCREEN
+   ============================================================ */
+#screen-home{background:linear-gradient(160deg,#0a0a0f 0%,#0f0a1a 60%,#0a0f1a 100%);}
+.home-header{padding:50px 20px 20px;text-align:center;}
+.home-logo{font-size:2.2rem;font-weight:900;color:var(--orange);letter-spacing:3px;text-shadow:0 0 20px rgba(255,107,53,0.5);}
+.home-user{font-size:0.85rem;color:var(--blue);margin-top:4px;}
+.coins-display{display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:4px 14px;margin-top:8px;font-size:0.9rem;color:var(--gold);font-weight:700;}
+.home-menu{flex:1;padding:10px 20px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.menu-card{background:rgba(20,20,35,0.8);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
+.menu-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--orange);}
+.menu-card:active{transform:scale(0.98);background:rgba(255,107,53,0.1);}
+.menu-card-icon{font-size:2rem;width:50px;text-align:center;}
+.menu-card-info h3{font-size:1.1rem;font-weight:700;}
+.menu-card-info p{font-size:0.8rem;color:var(--text-muted);margin-top:2px;}
+.menu-card-arrow{margin-left:auto;color:var(--orange);font-size:1.2rem;}
+.home-bottom{padding:0 20px 30px;display:flex;gap:10px;}
+.home-bottom .btn{flex:1;height:44px;font-size:0.85rem;}
+
+/* ============================================================
+   STORE SCREEN
+   ============================================================ */
+#screen-store{background:#0a0a0f;}
+.screen-header{padding:50px 20px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.back-btn{width:40px;height:40px;background:rgba(255,255,255,0.05);border:none;border-radius:10px;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.back-btn:active{background:rgba(255,255,255,0.12);}
+.screen-title{font-size:1.3rem;font-weight:800;color:#fff;}
+.store-coins{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--gold);font-weight:700;}
+.store-grid{flex:1;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;overflow-y:auto;}
+.gun-card{background:rgba(20,20,35,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:16px;cursor:pointer;transition:all 0.15s;position:relative;}
+.gun-card:active{transform:scale(0.97);}
+.gun-card.owned{border-color:rgba(51,255,136,0.4);}
+.gun-card-icon{font-size:2.5rem;text-align:center;margin-bottom:10px;}
+.gun-card-name{font-size:0.95rem;font-weight:700;text-align:center;}
+.gun-card-type{font-size:0.7rem;color:var(--text-muted);text-align:center;text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.gun-stats{margin-top:10px;display:flex;flex-direction:column;gap:4px;}
+.stat-bar-row{display:flex;align-items:center;gap:6px;font-size:0.7rem;}
+.stat-bar-row span:first-child{width:35px;color:var(--text-muted);}
+.stat-bar{flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;}
+.stat-bar-fill{height:100%;background:var(--orange);border-radius:2px;}
+.gun-price{margin-top:10px;text-align:center;font-weight:700;font-size:0.9rem;}
+.gun-price.owned{color:var(--green);}
+.gun-owned-badge{position:absolute;top:8px;right:8px;background:var(--green);color:#000;font-size:0.65rem;font-weight:900;padding:2px 6px;border-radius:6px;text-transform:uppercase;}
+
+/* ============================================================
+   LOBBY SCREEN
+   ============================================================ */
+#screen-lobby{background:#0a0a0f;}
+.lobby-body{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.section-label{font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:8px;font-weight:700;}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.mode-btn{background:rgba(20,20,35,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:0.85rem;font-weight:700;color:#fff;}
+.mode-btn:active,.mode-btn.selected{background:rgba(255,107,53,0.2);border-color:var(--orange);color:var(--orange);}
+.room-input-row{display:flex;gap:10px;}
+.room-input-row .game-input{flex:1;}
+.room-input-row .btn{width:auto;padding:0 20px;flex-shrink:0;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(20,20,35,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;}
+.settings-row-label{font-size:0.9rem;}
+.toggle{width:50px;height:26px;background:rgba(255,255,255,0.1);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;}
+.toggle.on{background:var(--orange);}
+.toggle::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.toggle.on::after{transform:translateX(24px);}
+
+/* ============================================================
+   WAITING ROOM SCREEN
+   ============================================================ */
+#screen-waiting{background:#0a0a0f;}
+.room-code-display{background:rgba(255,107,53,0.1);border:2px solid var(--orange);border-radius:16px;padding:16px;text-align:center;margin:0 16px;}
+.room-code-label{font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;}
+.room-code-value{font-size:2.5rem;font-weight:900;color:var(--orange);letter-spacing:6px;margin-top:4px;}
+.players-list{flex:1;padding:16px;overflow-y:auto;}
+.team-section{margin-bottom:20px;}
+.team-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.team-badge{padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.team-a-badge{background:rgba(0,212,255,0.2);color:var(--blue);border:1px solid rgba(0,212,255,0.4);}
+.team-b-badge{background:rgba(255,107,53,0.2);color:var(--orange);border:1px solid rgba(255,107,53,0.4);}
+.player-slot{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(20,20,35,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;margin-bottom:8px;}
+.player-slot.empty{opacity:0.4;}
+.player-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;}
+.player-slot-name{font-size:0.95rem;font-weight:600;}
+.player-slot-status{margin-left:auto;font-size:0.75rem;color:var(--green);}
+.waiting-footer{padding:16px;border-top:1px solid rgba(255,255,255,0.07);}
+.gun-select-section{padding:0 16px;margin-bottom:16px;}
+.gun-slots-row{display:flex;gap:10px;}
+.gun-slot-pick{flex:1;height:70px;background:rgba(20,20,35,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;}
+.gun-slot-pick:active{transform:scale(0.95);}
+.gun-slot-pick.selected-slot{border-color:var(--orange);background:rgba(255,107,53,0.1);}
+.gun-slot-num{font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;}
+.gun-slot-icon{font-size:1.4rem;}
+.gun-slot-name{font-size:0.65rem;color:#fff;margin-top:2px;font-weight:600;}
+
+/* ============================================================
+   GAME SCREEN
+   ============================================================ */
+#screen-game{background:#000;z-index:1;}
+#camera-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;}
+#three-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;}
+#game-hud{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.hud-pointer-on{pointer-events:all;}
+
+/* TOP HUD */
+#hud-top{position:absolute;top:0;left:0;right:0;padding:10px 12px 8px;background:linear-gradient(180deg,rgba(0,0,0,0.7) 0%,transparent 100%);}
+.hud-top-row{display:flex;align-items:center;gap:8px;}
+#hud-hp-bar-wrap{display:flex;align-items:center;gap:6px;}
+#hud-hp-icon{font-size:1rem;}
+#hud-hp-bar{width:100px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;}
+#hud-hp-fill{height:100%;background:linear-gradient(90deg,#ff3333,#ff6666);border-radius:3px;transition:width 0.3s;}
+#hud-hp-val{font-size:0.8rem;font-weight:700;color:#fff;min-width:28px;}
+#hud-kills-box{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;margin-left:auto;}
+.hud-kill-item{text-align:center;}
+.hud-kill-num{font-size:1rem;font-weight:900;line-height:1;}
+.hud-kill-label{font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;}
+#hud-timer{background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;font-size:0.85rem;font-weight:700;color:var(--gold);}
+#hud-round{background:rgba(255,107,53,0.2);border:1px solid var(--orange);border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:700;color:var(--orange);}
+
+/* TEAM MATES (left side) */
+#hud-teammates{position:absolute;left:8px;top:80px;display:flex;flex-direction:column;gap:6px;}
+.mate-card{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:6px;min-width:110px;}
+.mate-avatar-sm{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:900;}
+.mate-info{flex:1;}
+.mate-name{font-size:0.7rem;font-weight:700;color:#fff;}
+.mate-hp-bar{width:100%;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:2px;overflow:hidden;}
+.mate-hp-fill{height:100%;background:var(--green);border-radius:2px;}
+.mate-dead{opacity:0.4;}
+
+/* CROSSHAIR */
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;pointer-events:none;z-index:4;}
+.ch-line{position:absolute;background:#fff;border-radius:1px;box-shadow:0 0 4px rgba(0,0,0,0.8);}
+#ch-t{width:2px;height:14px;top:0;left:24px;}
+#ch-b{width:2px;height:14px;bottom:0;left:24px;}
+#ch-l{width:14px;height:2px;left:0;top:24px;}
+#ch-r{width:14px;height:2px;right:0;top:24px;}
+#ch-dot{width:4px;height:4px;background:#fff;border-radius:50%;top:23px;left:23px;}
+#crosshair.enemy-lock .ch-line{background:var(--red);}
+#crosshair.enemy-lock #ch-dot{background:var(--red);}
+#crosshair.expanding #ch-t{transform:translateY(-8px);}
+#crosshair.expanding #ch-b{transform:translateY(8px);}
+#crosshair.expanding #ch-l{transform:translateX(-8px);}
+#crosshair.expanding #ch-r{transform:translateX(8px);}
+
+/* SCOPE OVERLAY */
+#scope-overlay{position:absolute;inset:0;z-index:5;display:none;pointer-events:none;}
+#scope-overlay.active{display:block;}
+.scope-ring{position:absolute;inset:0;background:radial-gradient(circle at center,transparent 22%,rgba(0,0,0,0.95) 22.5%);}
+.scope-crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;}
+.scope-h{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.6);transform:translateY(-50%);}
+.scope-v{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.6);transform:translateX(-50%);}
+.scope-circle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,0.4);}
+.scope-circle2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);}
+
+/* AMMO / GUN HUD (bottom center) */
+#hud-ammo{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;}
+#ammo-count{font-size:2rem;font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.8);line-height:1;}
+#ammo-label{font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;}
+#reload-bar-wrap{width:80px;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin:4px auto 0;display:none;}
+#reload-bar{height:100%;background:var(--orange);border-radius:2px;transition:width linear;}
+
+/* GUN SLOTS (bottom right) */
+#hud-gun-slots{position:absolute;bottom:130px;right:8px;display:flex;flex-direction:column;gap:6px;pointer-events:all;}
+.gun-slot-hud{width:58px;height:58px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative;}
+.gun-slot-hud:active{transform:scale(0.9);}
+.gun-slot-hud.active-gun{border-color:var(--orange);background:rgba(255,107,53,0.2);}
+.gun-slot-hud.empty-slot{opacity:0.3;}
+.gun-slot-emoji{font-size:1.4rem;}
+.gun-slot-tiny{font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;}
+.gun-slot-num-badge{position:absolute;top:2px;left:2px;font-size:0.55rem;color:var(--orange);font-weight:900;}
+
+/* FIRE BUTTONS */
+#btn-fire-left{position:absolute;bottom:80px;left:20px;width:90px;height:90px;background:rgba(255,51,51,0.2);border:2px solid rgba(255,51,51,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.1s;-webkit-user-select:none;user-select:none;}
+#btn-fire-right{position:absolute;bottom:60px;right:80px;width:110px;height:110px;background:rgba(255,51,51,0.3);border:2px solid rgba(255,51,51,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.1s;-webkit-user-select:none;user-select:none;}
+#btn-fire-left:active,#btn-fire-right:active{background:rgba(255,51,51,0.6);transform:scale(0.93);}
+.fire-btn-icon{font-size:2rem;}
+.fire-btn-label{font-size:0.5rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;color:#fff;}
+
+/* CONTROL BUTTONS */
+#btn-scope{position:absolute;bottom:180px;right:20px;width:56px;height:56px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.15s;}
+#btn-scope:active{transform:scale(0.9);}
+#btn-scope.active-scope{border-color:var(--orange);background:rgba(255,107,53,0.2);}
+#btn-reload{position:absolute;bottom:180px;left:20px;width:56px;height:56px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.15s;}
+#btn-reload:active{transform:scale(0.9);}
+#btn-headshot{position:absolute;bottom:250px;left:20px;width:56px;height:56px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.15s;}
+#btn-headshot.hs-on{border-color:var(--red);background:rgba(255,51,51,0.2);}
+#btn-headshot:active{transform:scale(0.9);}
+#btn-voice{position:absolute;bottom:250px;right:20px;width:56px;height:56px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all 0.15s;}
+#btn-voice.voice-on{border-color:var(--green);background:rgba(51,255,136,0.2);}
+#btn-voice:active{transform:scale(0.9);}
+.ctrl-icon{font-size:1.2rem;}
+.ctrl-label{font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+
+/* MINIMAP */
+#hud-minimap{position:absolute;bottom:130px;left:50%;transform:translateX(-50%);width:80px;height:80px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:50%;overflow:hidden;}
+.minimap-dot{position:absolute;width:6px;height:6px;border-radius:50%;transform:translate(-50%,-50%);}
+#minimap-self{background:var(--blue);width:8px;height:8px;top:50%;left:50%;}
+
+/* DAMAGE NUMBERS */
+#damage-pool{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden;}
+.dmg-number{position:absolute;font-size:1.4rem;font-weight:900;pointer-events:none;animation:dmg-float 1.2s ease-out forwards;text-shadow:1px 1px 4px rgba(0,0,0,0.9);}
+.dmg-head{color:var(--red);}
+.dmg-body{color:var(--gold);}
+@keyframes dmg-float{0%{opacity:1;transform:translate(-50%,-50%) scale(1.2);}50%{opacity:1;transform:translate(-50%,-100%) scale(1);}100%{opacity:0;transform:translate(-50%,-160%) scale(0.8);}}
+
+/* ENEMY MARKER */
+.enemy-marker{position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:4;}
+.enemy-marker-inner{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.enemy-name-tag{background:rgba(0,0,0,0.7);border:1px solid var(--red);border-radius:6px;padding:2px 8px;font-size:0.7rem;font-weight:700;color:var(--red);}
+.enemy-hp-mini{width:50px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;}
+.enemy-hp-fill-mini{height:100%;background:var(--red);border-radius:2px;}
+.enemy-location-pin{width:12px;height:12px;background:var(--red);clip-path:polygon(50% 0%,100% 38%,82% 100%,50% 75%,18% 100%,0% 38%);margin-top:2px;}
+
+/* KILL FEED */
+#kill-feed{position:absolute;top:80px;right:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
+.kill-entry{background:rgba(0,0,0,0.6);border-radius:8px;padding:4px 10px;font-size:0.72rem;animation:kill-enter 0.3s ease-out;display:flex;align-items:center;gap:4px;}
+@keyframes kill-enter{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.kill-red{color:var(--red);}
+.kill-orange{color:var(--orange);}
+
+/* POST-PROCESSING OVERLAYS */
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%);pointer-events:none;z-index:4;}
+#hit-flash{position:absolute;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:7;transition:background 0.1s;}
+#hit-flash.flash{background:rgba(255,0,0,0.3);}
+#grain{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:0.03;}
+
+/* RECOIL */
+#game-hud.recoil{animation:recoil-anim 0.2s ease-out;}
+@keyframes recoil-anim{0%{transform:translateY(0);}30%{transform:translateY(-8px) rotate(-1deg);}100%{transform:translateY(0) rotate(0);};}
+
+/* DEAD SCREEN */
+#dead-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:20;display:none;justify-content:center;align-items:center;flex-direction:column;gap:16px;}
+#dead-overlay.show{display:flex;}
+.dead-title{font-size:2.5rem;font-weight:900;color:var(--red);text-shadow:0 0 30px rgba(255,0,0,0.6);}
+#respawn-timer{font-size:1.5rem;font-weight:700;color:var(--gold);}
+
+/* HUD CUSTOMIZATION (button to toggle HUD edit) */
+#btn-hud-edit{position:absolute;top:10px;right:8px;width:36px;height:36px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;font-size:0.9rem;}
+
+/* ============================================================
+   RESULTS SCREEN
+   ============================================================ */
+#screen-results{background:#0a0a0f;justify-content:center;align-items:center;padding:20px;}
+.results-box{width:100%;max-width:400px;background:rgba(20,20,35,0.95);border:1px solid var(--border);border-radius:20px;padding:24px;text-align:center;}
+.results-title{font-size:2rem;font-weight:900;margin-bottom:4px;}
+.results-winner{font-size:1rem;color:var(--text-muted);margin-bottom:20px;}
+.results-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+.result-stat{background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;}
+.result-stat-num{font-size:1.8rem;font-weight:900;color:var(--orange);}
+.result-stat-label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;}
+.coins-earned{font-size:1rem;color:var(--gold);margin-bottom:16px;}
+
+/* ============================================================
+   TRAINING SCREEN
+   ============================================================ */
+#screen-training{background:#000;}
+#training-hud{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.training-targets{position:absolute;inset:0;z-index:2;pointer-events:none;}
+.target{position:absolute;width:60px;height:80px;cursor:pointer;pointer-events:all;transition:transform 0.1s;}
+.target:active{transform:scale(0.85);}
+.target-body{width:100%;height:100%;border-radius:8px;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.target.alive .target-body{border-color:var(--orange);background:rgba(255,107,53,0.15);}
+.target.dead .target-body{border-color:var(--text-muted);background:rgba(255,255,255,0.05);opacity:0.3;}
+.target-head{position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:30px;height:30px;border-radius:50%;border:2px solid var(--orange);background:rgba(255,107,53,0.2);display:flex;align-items:center;justify-content:center;font-size:0.8rem;}
+.training-score{position:absolute;top:60px;left:50%;transform:translateX(-50%);font-size:1.5rem;font-weight:900;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,0.8);}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;justify-content:center;align-items:flex-end;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+.modal-box{width:100%;max-width:480px;background:#111827;border-radius:20px 20px 0 0;padding:20px 20px 34px;animation:modal-up 0.3s ease-out;}
+@keyframes modal-up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:1.1rem;font-weight:700;margin-bottom:16px;text-align:center;}
+.gun-select-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:300px;overflow-y:auto;}
+.gun-select-item{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.15s;}
+.gun-select-item:active,.gun-select-item.selected{border-color:var(--orange);background:rgba(255,107,53,0.15);}
+.gun-select-item.locked{opacity:0.4;}
+.gsi-icon{font-size:1.5rem;}
+.gsi-name{font-size:0.7rem;margin-top:4px;font-weight:600;}
+.gsi-locked{font-size:0.6rem;color:var(--text-muted);margin-top:2px;}
+
+/* ============================================================
+   TOAST NOTIFICATION
+   ============================================================ */
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(20,20,35,0.95);border:1px solid var(--border);border-radius:12px;padding:10px 20px;font-size:0.9rem;font-weight:600;z-index:999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.spinner{width:40px;height:40px;border:3px solid rgba(255,107,53,0.2);border-top-color:var(--orange);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:none;justify-content:center;align-items:center;flex-direction:column;gap:16px;}
+.loading-overlay.show{display:flex;}
+.loading-text{color:var(--text-muted);font-size:0.9rem;}
+
+/* MISC */
+.divider{height:1px;background:rgba(255,255,255,0.07);margin:8px 0;}
+.text-center{text-align:center;}
+.mt-8{margin-top:8px;}
+.mt-16{margin-top:16px;}
+.flex-row{display:flex;align-items:center;}
+.gap-8{gap:8px;}
+.w-full{width:100%;}
+input[type=number]{-moz-appearance:textfield;}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;}
+
+/* HUD resize handle (visible in edit mode) */
+.hud-editable{resize:both;overflow:visible;}
+.edit-mode .hud-editable{outline:1px dashed rgba(255,107,53,0.5);}
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOADING OVERLAY
+     ============================================================ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Loading...</div>
+</div>
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+<div id="toast"></div>
+
+<!-- ============================================================
+     SCREEN 1: SPLASH
+     ============================================================ -->
+<div class="screen active" id="screen-splash">
+  <div class="splash-logo">⚡ STRIKE ZONE</div>
+  <div class="splash-sub">AR Multiplayer Combat</div>
+  <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+  <div class="splash-version">v1.0 • India Edition</div>
+</div>
+
+<!-- ============================================================
+     SCREEN 2: LOGIN
+     ============================================================ -->
+<div class="screen" id="screen-login">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>⚡ STRIKE ZONE</h1>
+      <p>AR MULTIPLAYER COMBAT</p>
+    </div>
+    <div class="auth-title">Login to Play</div>
+    <div class="error-msg" id="login-error"></div>
+    <div class="input-group">
+      <label class="input-label">Username</label>
+      <input class="game-input" type="text" id="login-username" placeholder="Enter your username" autocomplete="username">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Password</label>
+      <input class="game-input" type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="btn-login">🎮 LOGIN</button>
+    <div class="auth-switch mt-8">Don't have an account? <a href="#" id="link-to-register">Register here</a></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 3: REGISTER
+     ============================================================ -->
+<div class="screen" id="screen-register">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>⚡ STRIKE ZONE</h1>
+      <p>AR MULTIPLAYER COMBAT</p>
+    </div>
+    <div class="auth-title">Create Account</div>
+    <div class="error-msg" id="register-error"></div>
+    <div class="input-group">
+      <label class="input-label">Unique Username</label>
+      <input class="game-input" type="text" id="reg-username" placeholder="Choose a unique username" autocomplete="off">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input class="game-input" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Password</label>
+      <input class="game-input" type="password" id="reg-password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Confirm Password</label>
+      <input class="game-input" type="password" id="reg-confirm" placeholder="Repeat password" autocomplete="new-password">
+    </div>
+    <button class="btn btn-primary" id="btn-register">⚡ CREATE ACCOUNT</button>
+    <div class="auth-switch mt-8">Already registered? <a href="#" id="link-to-login">Login here</a></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 4: HOME
+     ============================================================ -->
+<div class="screen" id="screen-home">
+  <div class="home-header">
+    <div class="home-logo">⚡ STRIKE ZONE</div>
+    <div class="home-user" id="home-username-display">Welcome, Player</div>
+    <div class="coins-display">💰 <span id="home-coins">2000</span></div>
+  </div>
+  <div class="home-menu">
+    <div class="menu-card" id="menu-play">
+      <div class="menu-card-icon">🎮</div>
+      <div class="menu-card-info">
+        <h3>Play Now</h3>
+        <p>Create or join a room</p>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card" id="menu-training">
+      <div class="menu-card-icon">🎯</div>
+      <div class="menu-card-info">
+        <h3>Training Ground</h3>
+        <p>Practice your aim</p>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card" id="menu-store">
+      <div class="menu-card-icon">🛒</div>
+      <div class="menu-card-info">
+        <h3>Gun Store</h3>
+        <p>Buy new weapons</p>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card" id="menu-profile">
+      <div class="menu-card-icon">👤</div>
+      <div class="menu-card-info">
+        <h3>Profile & Stats</h3>
+        <p id="profile-stat-text">K/D: 0 | Matches: 0</p>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+  </div>
+  <div class="home-bottom">
+    <button class="btn btn-secondary" id="btn-settings">⚙️ Settings</button>
+    <button class="btn btn-secondary" id="btn-logout">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 5: STORE
+     ============================================================ -->
+<div class="screen" id="screen-store">
+  <div class="screen-header">
+    <button class="back-btn" id="store-back">‹</button>
+    <div class="screen-title">🛒 Gun Store</div>
+    <div class="store-coins">💰 <span id="store-coins-display">2000</span></div>
+  </div>
+  <div class="store-grid" id="store-grid">
+    <!-- Dynamically populated -->
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 6: LOBBY
+     ============================================================ -->
+<div class="screen" id="screen-lobby">
+  <div class="screen-header">
+    <button class="back-btn" id="lobby-back">‹</button>
+    <div class="screen-title">🎮 Find Match</div>
+  </div>
+  <div class="lobby-body">
+    <!-- Mode Selection -->
+    <div>
+      <div class="section-label">Game Mode</div>
+      <div class="mode-grid" id="mode-grid">
+        <div class="mode-btn selected" data-mode="1v1">1v1</div>
+        <div class="mode-btn" data-mode="1v2">1v2</div>
+        <div class="mode-btn" data-mode="1v3">1v3</div>
+        <div class="mode-btn" data-mode="1v4">1v4</div>
+        <div class="mode-btn" data-mode="2v2">2v2</div>
+        <div class="mode-btn" data-mode="2v3">2v3</div>
+        <div class="mode-btn" data-mode="2v4">2v4</div>
+        <div class="mode-btn" data-mode="3v3">3v3</div>
+        <div class="mode-btn" data-mode="3v4">3v4</div>
+        <div class="mode-btn" data-mode="4v4">4v4</div>
+        <div class="mode-btn" data-mode="solo">Solo</div>
+        <div class="mode-btn" data-mode="duo">Duo</div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div>
+      <div class="section-label">Match Settings</div>
+      <div class="settings-row">
+        <span class="settings-row-label">🎯 Headshot Only Mode</span>
+        <div class="toggle" id="lobby-headshot-toggle"></div>
+      </div>
+      <div class="settings-row" style="margin-top:8px;">
+        <span class="settings-row-label">🔄 Rounds</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" style="width:36px;height:36px;" id="rounds-minus">-</button>
+          <span style="width:24px;text-align:center;line-height:36px;font-weight:700;" id="rounds-display">5</span>
+          <button class="btn btn-secondary" style="width:36px;height:36px;" id="rounds-plus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Room -->
+    <div>
+      <div class="section-label">Create Room</div>
+      <button class="btn btn-primary" id="btn-create-room">⚡ Create New Room</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Join Room -->
+    <div>
+      <div class="section-label">Join Room</div>
+      <div class="room-input-row">
+        <input class="game-input" type="text" id="join-room-code" placeholder="Enter Room Code" style="text-transform:uppercase;letter-spacing:3px;" maxlength="6">
+        <button class="btn btn-blue" id="btn-join-room" style="padding:0 20px;">Join</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 7: WAITING ROOM
+     ============================================================ -->
+<div class="screen" id="screen-waiting">
+  <div class="screen-header">
+    <button class="back-btn" id="waiting-back">‹</button>
+    <div class="screen-title">Waiting Room</div>
+  </div>
+  <div style="padding:16px;">
+    <div class="room-code-display">
+      <div class="room-code-label">Room Code - Share with friends</div>
+      <div class="room-code-value" id="waiting-room-code">------</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">Mode: <span id="waiting-mode">1v1</span></div>
+    </div>
+  </div>
+
+  <!-- Gun Selection -->
+  <div class="gun-select-section">
+    <div class="section-label">Your Weapons (Select 3)</div>
+    <div class="gun-slots-row" id="waiting-gun-slots">
+      <div class="gun-slot-pick selected-slot" data-slot="0">
+        <div class="gun-slot-num">Slot 1</div>
+        <div class="gun-slot-icon" id="waiting-slot-icon-0">🔫</div>
+        <div class="gun-slot-name" id="waiting-slot-name-0">Desert</div>
+      </div>
+      <div class="gun-slot-pick" data-slot="1">
+        <div class="gun-slot-num">Slot 2</div>
+        <div class="gun-slot-icon" id="waiting-slot-icon-1">🔫</div>
+        <div class="gun-slot-name" id="waiting-slot-name-1">M10</div>
+      </div>
+      <div class="gun-slot-pick" data-slot="2">
+        <div class="gun-slot-num">Slot 3</div>
+        <div class="gun-slot-icon" id="waiting-slot-icon-2">🔫</div>
+        <div class="gun-slot-name" id="waiting-slot-name-2">UMP</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="players-list" id="waiting-players-list">
+    <div class="team-section">
+      <div class="team-header"><span class="team-badge team-a-badge">Team A</span></div>
+      <div id="team-a-slots"></div>
+    </div>
+    <div class="team-section">
+      <div class="team-header"><span class="team-badge team-b-badge">Team B</span></div>
+      <div id="team-b-slots"></div>
+    </div>
+  </div>
+
+  <div class="waiting-footer">
+    <button class="btn btn-primary" id="btn-start-match" style="display:none;">▶️ Start Match</button>
+    <div id="waiting-for-host" style="text-align:center;color:var(--text-muted);font-size:0.85rem;">Waiting for host to start...</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 8: GAME
+     ============================================================ -->
+<div class="screen" id="screen-game">
+  <!-- Camera background -->
+  <video id="camera-video" autoplay playsinline muted></video>
+
+  <!-- Three.js canvas -->
+  <canvas id="three-canvas"></canvas>
+
+  <!-- Post-processing -->
+  <div id="vignette"></div>
+  <div id="hit-flash"></div>
+  <canvas id="grain"></canvas>
+
+  <!-- Enemy markers container -->
+  <div id="enemy-markers"></div>
+
+  <!-- Damage numbers -->
+  <div id="damage-pool"></div>
+
+  <!-- Scope overlay -->
+  <div id="scope-overlay">
+    <div class="scope-ring"></div>
+    <div class="scope-crosshair">
+      <div class="scope-h"></div>
+      <div class="scope-v"></div>
+      <div class="scope-circle"></div>
+      <div class="scope-circle2"></div>
+    </div>
+  </div>
+
+  <!-- Crosshair -->
+  <div id="crosshair">
+    <div class="ch-line" id="ch-t"></div>
+    <div class="ch-line" id="ch-b"></div>
+    <div class="ch-line" id="ch-l"></div>
+    <div class="ch-line" id="ch-r"></div>
+    <div class="ch-line" id="ch-dot"></div>
+  </div>
+
+  <!-- HUD Layer -->
+  <div id="game-hud">
+
+    <!-- TOP BAR -->
+    <div id="hud-top">
+      <div class="hud-top-row">
+        <div id="hud-hp-bar-wrap">
+          <span id="hud-hp-icon">❤️</span>
+          <div id="hud-hp-bar"><div id="hud-hp-fill" style="width:100%"></div></div>
+          <span id="hud-hp-val">100</span>
+        </div>
+        <div id="hud-timer">60:00</div>
+        <div id="hud-round">R 1/5</div>
+        <div id="hud-kills-box">
+          <div class="hud-kill-item">
+            <div class="hud-kill-num kill-red" id="hud-kills">0</div>
+            <div class="hud-kill-label">Kills</div>
+          </div>
+          <div style="width:1px;height:24px;background:rgba(255,255,255,0.1)"></div>
+          <div class="hud-kill-item">
+            <div class="hud-kill-num" id="hud-remaining" style="color:var(--gold)">0</div>
+            <div class="hud-kill-label">Left</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAM MATES -->
+    <div id="hud-teammates"></div>
+
+    <!-- GUN SLOTS -->
+    <div id="hud-gun-slots">
+      <div class="gun-slot-hud active-gun" id="gslot-0" data-slot="0">
+        <span class="gun-slot-num-badge">1</span>
+        <span class="gun-slot-emoji" id="gslot-icon-0">🔫</span>
+        <span class="gun-slot-tiny" id="gslot-name-0">--</span>
+      </div>
+      <div class="gun-slot-hud" id="gslot-1" data-slot="1">
+        <span class="gun-slot-num-badge">2</span>
+        <span class="gun-slot-emoji" id="gslot-icon-1">🔫</span>
+        <span class="gun-slot-tiny" id="gslot-name-1">--</span>
+      </div>
+      <div class="gun-slot-hud" id="gslot-2" data-slot="2">
+        <span class="gun-slot-num-badge">3</span>
+        <span class="gun-slot-emoji" id="gslot-icon-2">🔫</span>
+        <span class="gun-slot-tiny" id="gslot-name-2">--</span>
+      </div>
+    </div>
+
+    <!-- AMMO -->
+    <div id="hud-ammo">
+      <div id="ammo-count">7</div>
+      <div id="ammo-label">∞ / 7</div>
+      <div id="reload-bar-wrap"><div id="reload-bar"></div></div>
+    </div>
+
+    <!-- MINIMAP -->
+    <div id="hud-minimap">
+      <div class="minimap-dot" id="minimap-self"></div>
+    </div>
+
+    <!-- FIRE BUTTONS -->
+    <div id="btn-fire-left" class="hud-pointer-on">
+      <div style="text-align:center">
+        <div class="fire-btn-icon">🔥</div>
+        <div class="fire-btn-label">FIRE</div>
+      </div>
+    </div>
+    <div id="btn-fire-right" class="hud-pointer-on">
+      <div style="text-align:center">
+        <div class="fire-btn-icon">🔫</div>
+        <div class="fire-btn-label">FIRE</div>
+      </div>
+    </div>
+
+    <!-- CONTROL BUTTONS -->
+    <div id="btn-scope" class="hud-pointer-on">
+      <div class="ctrl-icon">🔭</div>
+      <div class="ctrl-label">Scope</div>
+    </div>
+    <div id="btn-reload" class="hud-pointer-on">
+      <div class="ctrl-icon">🔄</div>
+      <div class="ctrl-label">Reload</div>
+    </div>
+    <div id="btn-headshot" class="hud-pointer-on">
+      <div class="ctrl-icon">🎯</div>
+      <div class="ctrl-label">Head</div>
+    </div>
+    <div id="btn-voice" class="hud-pointer-on">
+      <div class="ctrl-icon">🎙️</div>
+      <div class="ctrl-label">Voice</div>
+    </div>
+    <div id="btn-hud-edit" class="hud-pointer-on" title="Edit HUD">⚙️</div>
+
+    <!-- KILL FEED -->
+    <div id="kill-feed"></div>
+
+    <!-- DEAD OVERLAY -->
+    <div id="dead-overlay">
+      <div class="dead-title">💀 YOU DIED</div>
+      <div id="respawn-timer">Respawning in 5...</div>
+    </div>
+
+  </div><!-- end game-hud -->
+
+</div><!-- end screen-game -->
+
+<!-- ============================================================
+     SCREEN 9: TRAINING
+     ============================================================ -->
+<div class="screen" id="screen-training">
+  <video id="training-camera" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;"></video>
+  <div id="vignette" style="position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%);z-index:2;pointer-events:none;"></div>
+
+  <div class="training-targets" id="training-targets"></div>
+
+  <div id="training-hud" style="position:absolute;inset:0;z-index:4;pointer-events:none;">
+    <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border:1px solid var(--orange);border-radius:10px;padding:8px 20px;display:flex;gap:20px;align-items:center;">
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--gold)" id="training-score">0</div><div style="font-size:0.6rem;color:var(--text-muted)">KILLS</div></div>
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--orange)" id="training-shots">0</div><div style="font-size:0.6rem;color:var(--text-muted)">SHOTS</div></div>
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--green)" id="training-accuracy">0%</div><div style="font-size:0.6rem;color:var(--text-muted)">ACCURACY</div></div>
+    </div>
+    <button onclick="StrikeZone.exitTraining()" style="position:absolute;top:60px;right:10px;background:rgba(255,51,51,0.3);border:1px solid var(--red);border-radius:10px;color:#fff;padding:8px 14px;cursor:pointer;pointer-events:all;font-weight:700;font-size:0.85rem;" class="btn">✕ EXIT</button>
+
+    <!-- Crosshair for training -->
+    <div id="training-crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;pointer-events:none;">
+      <div style="position:absolute;width:2px;height:14px;background:#fff;top:0;left:24px;"></div>
+      <div style="position:absolute;width:2px;height:14px;background:#fff;bottom:0;left:24px;"></div>
+      <div style="position:absolute;width:14px;height:2px;background:#fff;left:0;top:24px;"></div>
+      <div style="position:absolute;width:14px;height:2px;background:#fff;right:0;top:24px;"></div>
+    </div>
+
+    <!-- Training fire button -->
+    <div onclick="StrikeZone.trainingFire()" style="position:absolute;bottom:60px;right:60px;width:100px;height:100px;background:rgba(255,51,51,0.3);border:2px solid rgba(255,51,51,0.6);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;" class="btn">
+      <div style="font-size:2rem;">🔫</div>
+      <div style="font-size:0.5rem;text-transform:uppercase;">FIRE</div>
+    </div>
+  </div>
+  <div id="training-damage-pool" style="position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden;"></div>
+</div>
+
+<!-- ============================================================
+     SCREEN 10: RESULTS
+     ============================================================ -->
+<div class="screen screen-center" id="screen-results">
+  <div class="results-box">
+    <div class="results-title" id="results-title">🏆 VICTORY</div>
+    <div class="results-winner" id="results-subtitle">Team A Wins!</div>
+    <div class="results-stats">
+      <div class="result-stat"><div class="result-stat-num" id="res-kills">0</div><div class="result-stat-label">Kills</div></div>
+      <div class="result-stat"><div class="result-stat-num" id="res-deaths">0</div><div class="result-stat-label">Deaths</div></div>
+      <div class="result-stat"><div class="result-stat-num" id="res-hs" style="color:var(--red)">0</div><div class="result-stat-label">Headshots</div></div>
+    </div>
+    <div class="coins-earned" id="res-coins">💰 +200 Coins Earned</div>
+    <button class="btn btn-primary" id="btn-play-again">🎮 Play Again</button>
+    <button class="btn btn-secondary mt-8" id="btn-results-home">🏠 Home</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: GUN SELECT (for waiting room slot)
+     ============================================================ -->
+<div class="modal-overlay" id="gun-select-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Select Weapon for Slot <span id="modal-slot-num">1</span></div>
+    <div class="gun-select-grid" id="gun-select-grid"></div>
+    <button class="btn btn-secondary mt-16" onclick="StrikeZone.closeModal('gun-select-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+'use strict';
+
+// ============================================================
+// CONFIGURATION - CHANGE THESE VALUES!
+// ============================================================
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const ADMIN_EMAIL = 'prounknown055@gmail.com';
+
+// ============================================================
+// GUN DATABASE (Free Fire accurate stats)
+// ============================================================
+const GUNS = {
+  desert:      { name:'Desert Eagle', short:'Desert',    emoji:'🔫', type:'Pistol',  dmg:53,  range:50, reload:2.4, mag:7,  rps:1.2, recoil:0.08, price:0,    spread:0.04 },
+  m1887:       { name:'M1887',        short:'M1887',     emoji:'💥', type:'Shotgun', dmg:100, range:35, reload:2.8, mag:2,  rps:0.5, recoil:0.15, price:500,  spread:0.12, shells:true },
+  woodpecker:  { name:'Woodpecker',   short:'Woodpec',   emoji:'🔫', type:'AR',      dmg:73,  range:77, reload:1.9, mag:20, rps:2.0, recoil:0.05, price:800,  spread:0.02 },
+  ump:         { name:'UMP',          short:'UMP',       emoji:'🔫', type:'SMG',     dmg:48,  range:52, reload:2.1, mag:30, rps:6.0, recoil:0.04, price:300,  spread:0.03 },
+  mp40:        { name:'MP40',         short:'MP40',      emoji:'🔫', type:'SMG',     dmg:48,  range:35, reload:1.7, mag:20, rps:8.0, recoil:0.03, price:400,  spread:0.03 },
+  m10:         { name:'M10',          short:'M10',       emoji:'🔫', type:'SMG',     dmg:33,  range:58, reload:2.0, mag:30, rps:5.0, recoil:0.03, price:0,    spread:0.03 },
+  awm:         { name:'AWM',          short:'AWM',       emoji:'🎯', type:'Sniper',  dmg:90,  range:90, reload:3.1, mag:5,  rps:0.8, recoil:0.20, price:1500, spread:0.01, hasScope:true },
+  mp5:         { name:'MP5',          short:'MP5',       emoji:'🔫', type:'SMG',     dmg:45,  range:50, reload:1.8, mag:30, rps:5.5, recoil:0.035,price:350,  spread:0.03 },
+  chargebuster:{ name:'Charge Buster',short:'C.Buster',  emoji:'⚡', type:'Special', dmg:150, range:25, reload:3.0, mag:1,  rps:0.3, recoil:0.25, price:1200, spread:0.0  },
+  spas:        { name:'SPAS',         short:'SPAS',      emoji:'💥', type:'Shotgun', dmg:85,  range:25, reload:2.3, mag:5,  rps:1.0, recoil:0.12, price:600,  spread:0.15 }
+};
+
+// Distance damage multiplier: damage * (1 - dist/maxRange)
+// Headshot multiplier: 2x damage (200 for AWM)
+
+// ============================================================
+// MAIN GAME OBJECT
+// ============================================================
+const StrikeZone = (() => {
+  // --- State ---
+  let sb = null; // supabase client
+  let currentUser = null;
+  let currentProfile = null;
+  let currentRoom = null;
+  let myPlayerRow = null;
+  let roomPlayers = {};
+  let realtimeChannel = null;
+  let roomChannel = null;
+
+  let gameState = {
+    inGame: false,
+    inTraining: false,
+    myTeam: 'A',
+    hp: 100,
+    maxHp: 100,
+    selectedGuns: ['desert','m10','ump'],
+    currentSlot: 0,
+    ammo: {},
+    isReloading: false,
+    reloadTimer: null,
+    scopeActive: false,
+    headshotMode: false,
+    voiceActive: false,
+    kills: 0,
+    deaths: 0,
+    headshots: 0,
+    round: 1,
+    maxRounds: 5,
+    matchStart: null,
+    lastPositionUpdate: 0,
+    myLat: 0, myLng: 0,
+    gyroAlpha: 0, gyroBeta: 0, gyroGamma: 0,
+    smoothBeta: 0, smoothGamma: 0,
+    isAlive: true,
+    headshotOnly: false,
+    selectedMode: '1v1',
+    rounds: 5,
+    selectedSlotForModal: 0,
+    trainingKills: 0,
+    trainingShots: 0,
+    enemyLocked: false,
+    peerConn: null,
+    localStream: null,
+  };
+
+  // Three.js
+  let renderer, scene, camera, gunMesh, gunGroup;
+  let animFrame = null;
+  let crosshairX = 0, crosshairY = 0; // -1 to 1
+
+  // Timers
+  let matchTimer = null;
+  let matchSeconds = 3600;
+
+  // Audio context
+  let audioCtx = null;
+
+  // ============================================================
+  // AUDIO ENGINE
+  // ============================================================
+  function initAudio() {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) {}
+  }
+
+  function playTap() { playTone(800, 0.08, 'sine', 0.1); }
+  function playShot(gunId) {
+    const g = GUNS[gunId];
+    if (!g) return;
+    const freq = g.type === 'Sniper' ? 200 : g.type === 'Shotgun' ? 150 : 400;
+    playTone(freq, 0.3, 'sawtooth', 0.15);
+    playTone(freq * 0.5, 0.2, 'square', 0.1, 0.05);
+  }
+  function playHit() { playTone(600, 0.2, 'sine', 0.1); }
+  function playReload() { playTone(300, 0.15, 'triangle', 0.3); }
+  function playEmpty() { playTone(200, 0.15, 'square', 0.05); }
+  function playKill() {
+    [600,800,1000].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'sine', 0.1), i*80));
+  }
+
+  function playTone(freq, vol, type, dur, delay=0) {
+    if (!audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + delay + dur);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + dur + 0.01);
+    } catch(e) {}
+  }
+
+  // ============================================================
+  // TOUCH FEEDBACK (ripple effect on all buttons)
+  // ============================================================
+  function addTouchFeedback() {
+    document.addEventListener('touchstart', (e) => {
+      const t = e.target.closest('.btn,.back-btn,.menu-card,.mode-btn,.gun-slot-hud,.gun-slot-pick,.gun-card,.gun-select-item,#btn-fire-left,#btn-fire-right,#btn-scope,#btn-reload,#btn-headshot,#btn-voice,#btn-hud-edit,.toggle,.menu-card');
+      if (!t) return;
+      playTap();
+      const ripple = document.createElement('div');
+      const rect = t.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      ripple.style.cssText = `position:absolute;width:60px;height:60px;background:rgba(255,255,255,0.2);border-radius:50%;left:${x-30}px;top:${y-30}px;transform:scale(0);animation:ripple-out 0.4s ease-out forwards;pointer-events:none;z-index:999;`;
+      t.style.position = t.style.position || 'relative';
+      t.style.overflow = 'hidden';
+      t.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 400);
+    }, { passive: true });
+  }
+
+  const rippleStyle = document.createElement('style');
+  rippleStyle.textContent = '@keyframes ripple-out{to{transform:scale(3);opacity:0;}}';
+  document.head.appendChild(rippleStyle);
+
+  // ============================================================
+  // SCREEN MANAGEMENT
+  // ============================================================
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const s = document.getElementById('screen-' + id);
+    if (s) s.classList.add('active');
+  }
+
+  function showLoading(text='Loading...') {
+    document.getElementById('loading-text').textContent = text;
+    document.getElementById('loading-overlay').classList.add('show');
+  }
+  function hideLoading() {
+    document.getElementById('loading-overlay').classList.remove('show');
+  }
+
+  let toastTimer = null;
+  function showToast(msg, dur=2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+
+  // ============================================================
+  // SUPABASE INIT
+  // ============================================================
+  function initSupabase() {
+    try {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      return true;
+    } catch(e) {
+      showToast('❌ Supabase connection failed');
+      return false;
+    }
+  }
+
+  // ============================================================
+  // AUTH
+  // ============================================================
+  async function login() {
+    const username = document.getElementById('login-username').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    if (!username || !password) { showErr(errEl, 'Please fill all fields'); return; }
+
+    showLoading('Logging in...');
+    try {
+      // Find email by username
+      const { data: prof, error: pErr } = await sb.from('profiles').select('id').eq('username', username).single();
+      if (pErr || !prof) { hideLoading(); showErr(errEl, '❌ Username not found'); return; }
+
+      // We stored email as username@strikezone.game format
+      const email = username + '@strikezone.game';
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { hideLoading(); showErr(errEl, '❌ Wrong password'); return; }
+
+      currentUser = data.user;
+      await loadProfile();
+      hideLoading();
+      showScreen('home');
+      updateHomeScreen();
+    } catch(e) {
+      hideLoading();
+      showErr(errEl, '❌ Login failed. Try again.');
+    }
+  }
+
+  async function register() {
+    const username = document.getElementById('reg-username').value.trim().toLowerCase();
+    const email = document.getElementById('reg-email').value.trim().toLowerCase();
+    const password = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-confirm').value;
+    const errEl = document.getElementById('register-error');
+    errEl.style.display = 'none';
+
+    if (!username || !email || !password) { showErr(errEl, 'Fill all fields'); return; }
+    if (username.length < 3) { showErr(errEl, 'Username must be 3+ characters'); return; }
+    if (!/^[a-z0-9_]+$/.test(username)) { showErr(errEl, 'Username: only letters, numbers, underscore'); return; }
+    if (password.length < 6) { showErr(errEl, 'Password must be 6+ characters'); return; }
+    if (password !== confirm) { showErr(errEl, 'Passwords do not match'); return; }
+
+    showLoading('Creating account...');
+    try {
+      // Check unique username
+      const { data: existing } = await sb.from('profiles').select('id').eq('username', username);
+      if (existing && existing.length > 0) { hideLoading(); showErr(errEl, '❌ Username already taken!'); return; }
+
+      // Register with supabase auth (use username@strikezone.game as email for simplicity)
+      // But store actual email too. We use a trick: email in auth, username in profiles.
+      const authEmail = username + '@strikezone.game';
+      const { data, error } = await sb.auth.signUp({ email: authEmail, password });
+      if (error) { hideLoading(); showErr(errEl, '❌ ' + error.message); return; }
+
+      currentUser = data.user;
+
+      // Create profile
+      const { error: profErr } = await sb.from('profiles').insert({
+        id: currentUser.id,
+        username: username,
+        display_name: username,
+        coins: 2000,
+        owned_guns: ['desert','m10','ump'],
+        avatar_color: randomColor()
+      });
+
+      if (profErr) {
+        hideLoading();
+        showErr(errEl, '❌ Profile creation failed: ' + profErr.message);
+        return;
+      }
+
+      await loadProfile();
+      hideLoading();
+      showToast('🎉 Account created! Welcome!');
+      showScreen('home');
+      updateHomeScreen();
+    } catch(e) {
+      hideLoading();
+      showErr(errEl, '❌ Registration failed.');
+    }
+  }
+
+  async function logout() {
+    showLoading('Logging out...');
+    await cleanupGame();
+    await sb.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+    hideLoading();
+    showScreen('login');
+  }
+
+  function showErr(el, msg) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function loadProfile() {
+    if (!currentUser) return;
+    const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (data) currentProfile = data;
+  }
+
+  async function checkSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadProfile();
+      updateHomeScreen();
+      showScreen('home');
+    } else {
+      showScreen('login');
+    }
+  }
+
+  function updateHomeScreen() {
+    if (!currentProfile) return;
+    document.getElementById('home-username-display').textContent = '👤 ' + currentProfile.username;
+    document.getElementById('home-coins').textContent = currentProfile.coins || 0;
+    document.getElementById('store-coins-display').textContent = currentProfile.coins || 0;
+    const kd = currentProfile.total_deaths > 0
+      ? (currentProfile.total_kills / currentProfile.total_deaths).toFixed(2)
+      : currentProfile.total_kills || 0;
+    document.getElementById('profile-stat-text').textContent =
+      `K/D: ${kd} | Kills: ${currentProfile.total_kills || 0}`;
+  }
+
+  function randomColor() {
+    const colors = ['#FF6B35','#00D4FF','#9B59B6','#FF3333','#33FF88','#FFD700','#FF6B9D'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  // ============================================================
+  // STORE
+  // ============================================================
+  function buildStore() {
+    const grid = document.getElementById('store-grid');
+    grid.innerHTML = '';
+    const owned = currentProfile?.owned_guns || ['desert','m10','ump'];
+
+    Object.entries(GUNS).forEach(([id, gun]) => {
+      const isOwned = owned.includes(id);
+      const card = document.createElement('div');
+      card.className = 'gun-card' + (isOwned ? ' owned' : '');
+      card.innerHTML = `
+        ${isOwned ? '<div class="gun-owned-badge">Owned</div>' : ''}
+        <div class="gun-card-icon">${gun.emoji}</div>
+        <div class="gun-card-name">${gun.name}</div>
+        <div class="gun-card-type">${gun.type}</div>
+        <div class="gun-stats">
+          <div class="stat-bar-row"><span>DMG</span><div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.min(gun.dmg,100)}%"></div></div></div>
+          <div class="stat-bar-row"><span>RNG</span><div class="stat-bar"><div class="stat-bar-fill" style="width:${gun.range}%"></div></div></div>
+          <div class="stat-bar-row"><span>SPD</span><div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.min(gun.rps*10,100)}%"></div></div></div>
+        </div>
+        <div class="gun-price ${isOwned ? 'owned' : ''}">${isOwned ? '✅ Owned' : '💰 ' + gun.price}</div>
+      `;
+      if (!isOwned) {
+        card.addEventListener('click', () => buyGun(id, gun));
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  async function buyGun(id, gun) {
+    playTap();
+    if (!currentProfile) return;
+    const coins = currentProfile.coins || 0;
+    if (coins < gun.price) { showToast('❌ Not enough coins! Need ' + gun.price); return; }
+
+    showLoading('Buying...');
+    const newOwned = [...(currentProfile.owned_guns || []), id];
+    const newCoins = coins - gun.price;
+    const { error } = await sb.from('profiles').update({ coins: newCoins, owned_guns: newOwned }).eq('id', currentUser.id);
+    hideLoading();
+    if (!error) {
+      currentProfile.coins = newCoins;
+      currentProfile.owned_guns = newOwned;
+      updateHomeScreen();
+      buildStore();
+      showToast('✅ ' + gun.name + ' purchased!');
+    } else {
+      showToast('❌ Purchase failed');
+    }
+  }
+
+  // ============================================================
+  // LOBBY & ROOM
+  // ============================================================
+  function getModeMaxPlayers(mode) {
+    const map = { '1v1':2,'1v2':3,'1v3':4,'1v4':5,'2v2':4,'2v3':5,'2v4':6,'3v3':6,'3v4':7,'4v4':8,'solo':1,'duo':2 };
+    return map[mode] || 2;
+  }
+  function getModeTeams(mode) {
+    const map = {
+      '1v1':[1,1],'1v2':[1,2],'1v3':[1,3],'1v4':[1,4],
+      '2v2':[2,2],'2v3':[2,3],'2v4':[2,4],
+      '3v3':[3,3],'3v4':[3,4],'4v4':[4,4],
+      'solo':[1,0],'duo':[1,1]
+    };
+    return map[mode] || [1,1];
+  }
+
+  function genRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  async function createRoom() {
+    if (!currentUser || !currentProfile) { showToast('Please login first'); return; }
+    playTap();
+    showLoading('Creating room...');
+    try {
+      const mode = gameState.selectedMode;
+      const maxPlayers = getModeMaxPlayers(mode);
+      const code = genRoomCode();
+
+      const { data, error } = await sb.from('rooms').insert({
+        room_code: code,
+        mode: mode,
+        max_players: maxPlayers,
+        host_id: currentUser.id,
+        host_username: currentProfile.username,
+        max_rounds: gameState.rounds,
+        headshot_only: gameState.headshotOnly
+      }).select().single();
+
+      if (error) { hideLoading(); showToast('❌ Room creation failed: ' + error.message); return; }
+
+      currentRoom = data;
+      await joinRoomAsPlayer(data.id, 'A');
+      hideLoading();
+      showWaitingRoom();
+    } catch(e) {
+      hideLoading();
+      showToast('❌ Error creating room');
+    }
+  }
+
+  async function joinRoom() {
+    const code = document.getElementById('join-room-code').value.trim().toUpperCase();
+    if (code.length !== 6) { showToast('Enter 6-character room code'); return; }
+    playTap();
+    showLoading('Joining room...');
+    try {
+      const { data: room, error } = await sb.from('rooms').select('*').eq('room_code', code).single();
+      if (error || !room) { hideLoading(); showToast('❌ Room not found'); return; }
+      if (room.status !== 'waiting') { hideLoading(); showToast('❌ Match already started'); return; }
+
+      // Check player count
+      const { data: players } = await sb.from('game_players').select('*').eq('room_id', room.id);
+      if (players && players.length >= room.max_players) { hideLoading(); showToast('❌ Room is full'); return; }
+
+      // Determine team
+      const [tA, tB] = getModeTeams(room.mode);
+      const aCount = players ? players.filter(p => p.team === 'A').length : 0;
+      const bCount = players ? players.filter(p => p.team === 'B').length : 0;
+      const team = aCount < tA ? 'A' : 'B';
+
+      currentRoom = room;
+      await joinRoomAsPlayer(room.id, team);
+      hideLoading();
+      showWaitingRoom();
+    } catch(e) {
+      hideLoading();
+      showToast('❌ Failed to join room');
+    }
+  }
+
+  async function joinRoomAsPlayer(roomId, team) {
+    if (!currentUser || !currentProfile) return;
+    const guns = gameState.selectedGuns.slice();
+    const { data, error } = await sb.from('game_players').upsert({
+      room_id: roomId,
+      user_id: currentUser.id,
+      username: currentProfile.username,
+      team: team,
+      hp: 100,
+      is_alive: true,
+      selected_guns: guns,
+      round_kills: 0
+    }, { onConflict: 'room_id,user_id' }).select().single();
+
+    if (!error && data) {
+      myPlayerRow = data;
+      gameState.myTeam = team;
+    }
+    subscribeToRoom(roomId);
+  }
+
+  function subscribeToRoom(roomId) {
+    if (realtimeChannel) realtimeChannel.unsubscribe();
+
+    realtimeChannel = sb.channel('room:' + roomId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: 'room_id=eq.' + roomId },
+        (payload) => handlePlayerUpdate(payload))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'room_id=eq.' + roomId },
+        (payload) => handleGameEvent(payload.new))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: 'id=eq.' + roomId },
+        (payload) => handleRoomUpdate(payload.new))
+      .subscribe();
+  }
+
+  function handlePlayerUpdate(payload) {
+    const p = payload.new || payload.old;
+    if (!p) return;
+    roomPlayers[p.user_id] = p;
+    if (gameState.inGame) {
+      updateHUDTeammates();
+      updateEnemyMarkers();
+    } else {
+      renderWaitingPlayers();
+    }
+  }
+
+  function handleGameEvent(evt) {
+    if (!gameState.inGame) return;
+    if (evt.event_type === 'hit' && evt.target_id === currentUser?.id) {
+      applyDamage(evt.damage, evt.hit_location, evt.shooter_name);
+    }
+    if (evt.event_type === 'kill') {
+      addKillFeed(evt.shooter_name, evt.target_name, evt.gun, evt.hit_location === 'head');
+      if (evt.target_id === currentUser?.id) { handleDeath(); }
+    }
+    updateRemainingCount();
+  }
+
+  function handleRoomUpdate(room) {
+    currentRoom = room;
+    if (room.status === 'playing' && !gameState.inGame) {
+      // Host started the match
+      setTimeout(() => startGame(), 500);
+    }
+    if (room.status === 'finished') {
+      endMatch();
+    }
+  }
+
+  async function showWaitingRoom() {
+    if (!currentRoom) return;
+    document.getElementById('waiting-room-code').textContent = currentRoom.room_code;
+    document.getElementById('waiting-mode').textContent = currentRoom.mode.toUpperCase();
+
+    // Show start button for host
+    const isHost = currentRoom.host_id === currentUser?.id;
+    document.getElementById('btn-start-match').style.display = isHost ? 'block' : 'none';
+    document.getElementById('waiting-for-host').style.display = isHost ? 'none' : 'block';
+
+    // Load existing players
+    const { data } = await sb.from('game_players').select('*').eq('room_id', currentRoom.id);
+    if (data) { data.forEach(p => { roomPlayers[p.user_id] = p; }); }
+    renderWaitingPlayers();
+    buildGunSelectModal();
+    showScreen('waiting');
+  }
+
+  function renderWaitingPlayers() {
+    if (!currentRoom) return;
+    const [tA, tB] = getModeTeams(currentRoom.mode);
+    const players = Object.values(roomPlayers);
+    const teamA = players.filter(p => p.team === 'A');
+    const teamB = players.filter(p => p.team === 'B');
+
+    const renderSlots = (containerId, team, maxCount) => {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = '';
+      for (let i = 0; i < maxCount; i++) {
+        const p = team[i];
+        const isMe = p && p.user_id === currentUser?.id;
+        const div = document.createElement('div');
+        div.className = 'player-slot' + (p ? '' : ' empty');
+        div.innerHTML = p
+          ? `<div class="player-avatar" style="background:${currentProfile?.avatar_color||'#FF6B35'};color:#fff;">${p.username[0].toUpperCase()}</div>
+             <div class="player-slot-name">${p.username} ${isMe ? '(You)' : ''}</div>
+             <div class="player-slot-status">✅ Ready</div>`
+          : `<div class="player-avatar" style="background:rgba(255,255,255,0.05);color:var(--text-muted);">?</div>
+             <div class="player-slot-name" style="color:var(--text-muted)">Waiting...</div>`;
+        el.appendChild(div);
+      }
+    };
+
+    renderSlots('team-a-slots', teamA, tA);
+    if (tB > 0) renderSlots('team-b-slots', teamB, tB);
+    else document.getElementById('team-b-slots').innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;padding:8px;">No team B (Solo mode)</div>';
+  }
+
+  async function startMatch() {
+    if (!currentRoom || currentRoom.host_id !== currentUser?.id) return;
+    playTap();
+    showLoading('Starting match...');
+
+    const { error } = await sb.from('rooms').update({
+      status: 'playing',
+      match_start_time: new Date().toISOString()
+    }).eq('id', currentRoom.id);
+
+    hideLoading();
+    if (!error) { startGame(); }
+    else { showToast('❌ Could not start match'); }
+  }
+
+  // ============================================================
+  // GAME INIT
+  // ============================================================
+  async function startGame() {
+    if (gameState.inGame) return;
+    gameState.inGame = true;
+    gameState.hp = 100;
+    gameState.isAlive = true;
+    gameState.kills = 0;
+    gameState.deaths = 0;
+    gameState.headshots = 0;
+    gameState.round = currentRoom?.current_round || 1;
+    gameState.maxRounds = currentRoom?.max_rounds || 5;
+    gameState.headshotMode = currentRoom?.headshot_only || false;
+    gameState.currentSlot = 0;
+    gameState.scopeActive = false;
+
+    // Init ammo
+    gameState.selectedGuns.forEach(gid => {
+      if (GUNS[gid]) gameState.ammo[gid] = GUNS[gid].mag;
+    });
+
+    showScreen('game');
+
+    await Promise.all([
+      startCamera('camera-video'),
+      initThreeJS(),
+      initGyroscope(),
+      initGPS(),
+    ]);
+
+    buildGameHUD();
+    startMatchTimer();
+    startPositionBroadcast();
+    gameState.inGame = true;
+
+    // Update button headshot state
+    if (gameState.headshotMode) {
+      document.getElementById('btn-headshot').classList.add('hs-on');
+    }
+
+    // Request permissions
+    requestGyro();
+    showToast('🎮 Match Started! Hunt them down!');
+  }
+
+  // ============================================================
+  // CAMERA
+  // ============================================================
+  async function startCamera(videoId) {
+    const video = document.getElementById(videoId);
+    if (!video) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      return stream;
+    } catch(e) {
+      console.warn('Camera error:', e);
+      showToast('⚠️ Camera access needed for AR mode');
+    }
+  }
+
+  // ============================================================
+  // THREE.JS RENDERER
+  // ============================================================
+  async function initThreeJS() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas) return;
+
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = false;
+    renderer.setClearColor(0x000000, 0);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+
+    // Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 5, 5);
+    scene.add(dirLight);
+    const pointLight = new THREE.PointLight(0xFF6B35, 2, 10);
+    pointLight.position.set(-2, 2, 3);
+    scene.add(pointLight);
+
+    buildGunModel('desert');
+    startRenderLoop();
+    window.addEventListener('resize', onWindowResize);
+  }
+
+  function buildGunModel(gunId) {
+    if (gunGroup) scene.remove(gunGroup);
+    gunGroup = new THREE.Group();
+
+    const gun = GUNS[gunId] || GUNS.desert;
+    let mat = new THREE.MeshPhongMaterial({
+      color: 0x222222, specular: 0x666666, shininess: 80
+    });
+    let barrelMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+    let gripMat = new THREE.MeshPhongMaterial({ color: 0x1a0a00 });
+
+    if (gun.type === 'Sniper') {
+      // Body
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.15,0.12), mat);
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.9,8), barrelMat);
+      barrel.rotation.z = Math.PI/2; barrel.position.x = 0.7;
+      const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.25,8), new THREE.MeshPhongMaterial({color:0x333333}));
+      scope.rotation.z = Math.PI/2; scope.position.set(0.1,0.12,0);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.25,0.1), gripMat);
+      grip.position.set(0.1,-0.18,0);
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.12,0.1), mat);
+      stock.position.x = -0.45;
+      gunGroup.add(body,barrel,scope,grip,stock);
+    } else if (gun.type === 'Shotgun') {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,0.1), mat);
+      const barrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.5,8), barrelMat);
+      barrel1.rotation.z = Math.PI/2; barrel1.position.set(0.5,0.03,0);
+      const barrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.5,8), barrelMat);
+      barrel2.rotation.z = Math.PI/2; barrel2.position.set(0.5,-0.03,0);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.22,0.09), gripMat);
+      grip.position.set(0.05,-0.17,0);
+      gunGroup.add(body,barrel1,barrel2,grip);
+    } else if (gun.type === 'Special') { // Charge Buster
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.18,0.14), mat);
+      const chargeOrb = new THREE.Mesh(new THREE.SphereGeometry(0.1,12,12), new THREE.MeshPhongMaterial({color:0x00D4FF,emissive:0x006699}));
+      chargeOrb.position.x = 0.35;
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.22,0.1), gripMat);
+      grip.position.set(0.05,-0.17,0);
+      gunGroup.add(body,chargeOrb,grip);
+    } else {
+      // Default gun (pistol/smg/ar)
+      const body = new THREE.Mesh(new THREE.BoxGeometry(gun.type==='AR'?0.6:0.45, 0.12, 0.08), mat);
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,gun.type==='AR'?0.55:0.35,8), barrelMat);
+      barrel.rotation.z = Math.PI/2;
+      barrel.position.x = gun.type==='AR' ? 0.57 : 0.4;
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.22,0.09), gripMat);
+      grip.position.set(0.05,-0.15,0);
+      const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.08,0.04), new THREE.MeshPhongMaterial({color:0x333333}));
+      trigger.position.set(0.1,-0.1,0);
+      if (gun.type === 'SMG') {
+        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.18,0.06), new THREE.MeshPhongMaterial({color:0x1a1a1a}));
+        mag.position.set(0.05,-0.2,0);
+        gunGroup.add(mag);
+      }
+      gunGroup.add(body,barrel,grip,trigger);
+    }
+
+    // Position gun at bottom right
+    gunGroup.position.set(1.2, -0.9, 0);
+    gunGroup.rotation.y = -0.15;
+    gunMesh = gunGroup;
+    scene.add(gunGroup);
+  }
+
+  let gunRecoilAnim = 0;
+  let gunIdle = 0;
+
+  function startRenderLoop() {
+    if (animFrame) cancelAnimationFrame(animFrame);
+    function render() {
+      animFrame = requestAnimationFrame(render);
+      if (!gunGroup) return;
+
+      // Idle bob animation
+      gunIdle += 0.02;
+      gunGroup.position.y = -0.9 + Math.sin(gunIdle) * 0.015;
+      gunGroup.position.x = 1.2 + Math.cos(gunIdle * 0.7) * 0.008;
+
+      // Recoil recovery
+      if (gunRecoilAnim > 0) {
+        gunGroup.position.z = -gunRecoilAnim * 0.3;
+        gunGroup.rotation.x = gunRecoilAnim * 0.15;
+        gunRecoilAnim *= 0.85;
+        if (gunRecoilAnim < 0.001) gunRecoilAnim = 0;
+      } else {
+        gunGroup.position.z = 0;
+        gunGroup.rotation.x = 0;
+      }
+
+      // Gyro-based gun sway (subtle)
+      gunGroup.rotation.z = -gameState.smoothGamma * 0.01;
+
+      renderer.render(scene, camera);
+    }
+    render();
+  }
+
+  function onWindowResize() {
+    if (!renderer) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  function triggerRecoil(gunId) {
+    const g = GUNS[gunId];
+    if (!g) return;
+    gunRecoilAnim = g.recoil * 8;
+
+    // Screen shake via HUD
+    const hud = document.getElementById('game-hud');
+    hud.classList.remove('recoil');
+    void hud.offsetWidth;
+    hud.classList.add('recoil');
+    setTimeout(() => hud.classList.remove('recoil'), 250);
+
+    // Expand crosshair
+    const ch = document.getElementById('crosshair');
+    ch.classList.add('expanding');
+    setTimeout(() => ch.classList.remove('expanding'), 300);
+  }
+
+  // ============================================================
+  // GYROSCOPE
+  // ============================================================
+  function initGyroscope() {
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+
+  function requestGyro() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(r => {
+        if (r === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
+      }).catch(e => {});
+    }
+  }
+
+  const LERP = 0.15; // smoothing factor
+
+  function handleOrientation(e) {
+    if (!gameState.inGame && !gameState.inTraining) return;
+    const alpha = e.alpha || 0;
+    const beta = e.beta || 0;
+    const gamma = e.gamma || 0;
+
+    gameState.gyroAlpha = alpha;
+    gameState.gyroBeta = beta;
+    gameState.gyroGamma = gamma;
+
+    // Smooth using lerp (Linear Interpolation - prevents jitter)
+    gameState.smoothBeta = lerp(gameState.smoothBeta, beta, LERP);
+    gameState.smoothGamma = lerp(gameState.smoothGamma, gamma, LERP);
+
+    // Map gyro to crosshair position
+    // Beta: -90 (tilted forward) to 90 (tilted back) maps to Y
+    // Gamma: -45 to 45 maps to X
+    const targetX = clamp(gameState.smoothGamma / 45, -1, 1);
+    const targetY = clamp((gameState.smoothBeta - 45) / 45, -1, 1); // 45 = natural hold angle
+
+    crosshairX = lerp(crosshairX, targetX, 0.2);
+    crosshairY = lerp(crosshairY, targetY, 0.2);
+
+    updateCrosshairPosition();
+
+    // Check if we're on any enemy
+    checkCrosshairOnEnemy();
+
+    // Bullet spread based on movement
+    const gyroSpeed = Math.abs(beta - gameState.gyroBeta) + Math.abs(gamma - gameState.gyroGamma);
+    gameState.movingFast = gyroSpeed > 3;
+  }
+
+  function updateCrosshairPosition() {
+    const ch = document.getElementById('crosshair');
+    if (!ch) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const x = w/2 + crosshairX * w * 0.3;
+    const y = h/2 + crosshairY * h * 0.3;
+    ch.style.left = x + 'px';
+    ch.style.top = y + 'px';
+    ch.style.transform = 'translate(-50%,-50%)';
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  // ============================================================
+  // GPS
+  // ============================================================
+  function initGPS() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.watchPosition(
+      pos => {
+        gameState.myLat = pos.coords.latitude;
+        gameState.myLng = pos.coords.longitude;
+      },
+      err => console.warn('GPS error:', err),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+  }
+
+  function getDistance(lat1, lng1, lat2, lng2) {
+    // Haversine formula - returns meters
+    const R = 6371000;
+    const dLat = (lat2-lat1) * Math.PI/180;
+    const dLng = (lng2-lng1) * Math.PI/180;
+    const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ============================================================
+  // POSITION BROADCAST (every 100ms)
+  // ============================================================
+  let broadcastInterval = null;
+
+  function startPositionBroadcast() {
+    if (broadcastInterval) clearInterval(broadcastInterval);
+    broadcastInterval = setInterval(broadcastMyPosition, 100);
+  }
+
+  async function broadcastMyPosition() {
+    if (!currentRoom || !currentUser || !myPlayerRow || !gameState.inGame) return;
+    const now = Date.now();
+    if (now - gameState.lastPositionUpdate < 80) return;
+    gameState.lastPositionUpdate = now;
+
+    try {
+      await sb.from('game_players').update({
+        lat: gameState.myLat,
+        lng: gameState.myLng,
+        gyro_alpha: gameState.gyroAlpha,
+        gyro_beta: gameState.gyroBeta,
+        gyro_gamma: gameState.gyroGamma,
+        hp: gameState.hp,
+        is_alive: gameState.isAlive,
+        round_kills: gameState.kills,
+        last_updated: new Date().toISOString()
+      }).eq('id', myPlayerRow.id);
+    } catch(e) {}
+  }
+
+  // ============================================================
+  // ENEMY MARKERS (AR - show enemies on screen)
+  // ============================================================
+  function updateEnemyMarkers() {
+    const container = document.getElementById('enemy-markers');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const enemies = Object.values(roomPlayers).filter(p =>
+      p.user_id !== currentUser?.id &&
+      p.team !== gameState.myTeam &&
+      p.is_alive
+    );
+
+    const minimapEl = document.getElementById('hud-minimap');
+
+    enemies.forEach(enemy => {
+      const dist = getDistance(gameState.myLat, gameState.myLng, enemy.lat || 0, enemy.lng || 0);
+      // Show enemy marker if within detection range (or if GPS not available use proximity logic)
+      // For real play, GPS determines visibility. For testing, always show.
+      const showRange = 50; // 50 meters for game purposes (adjustable)
+      if (dist > showRange && gameState.myLat !== 0 && enemy.lat !== 0) return;
+
+      // Calculate screen position relative to player orientation
+      const screenPos = calculateEnemyScreenPos(enemy, dist);
+      if (!screenPos) return;
+
+      const marker = document.createElement('div');
+      marker.className = 'enemy-marker';
+      marker.id = 'emarker-' + enemy.user_id;
+      marker.style.left = screenPos.x + 'px';
+      marker.style.top = screenPos.y + 'px';
+
+      const hpPercent = Math.max(0, enemy.hp || 100);
+      marker.innerHTML = `
+        <div class="enemy-marker-inner">
+          <div class="enemy-name-tag">${enemy.username}</div>
+          <div class="enemy-hp-mini"><div class="enemy-hp-fill-mini" style="width:${hpPercent}%"></div></div>
+          <div class="enemy-location-pin"></div>
+        </div>
+      `;
+      container.appendChild(marker);
+
+      // Minimap dot
+      const minimapDot = document.createElement('div');
+      minimapDot.className = 'minimap-dot';
+      minimapDot.style.background = 'var(--red)';
+      minimapDot.style.left = '50%';
+      minimapDot.style.top = '50%';
+      if (minimapEl) minimapEl.appendChild(minimapDot);
+    });
+  }
+
+  function calculateEnemyScreenPos(enemy, dist) {
+    // For GPS-based positioning
+    if (gameState.myLat === 0 || !enemy.lat) {
+      // Fallback: random stable position based on user_id hash
+      const hash = hashCode(enemy.user_id || enemy.username);
+      return {
+        x: 80 + (Math.abs(hash) % (window.innerWidth - 160)),
+        y: 100 + (Math.abs(hash >> 8) % (window.innerHeight - 250))
+      };
+    }
+
+    // Calculate bearing from me to enemy
+    const lat1 = gameState.myLat * Math.PI/180;
+    const lat2 = (enemy.lat) * Math.PI/180;
+    const dLng = ((enemy.lng||0) - gameState.myLng) * Math.PI/180;
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x2 = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLng);
+    let bearing = Math.atan2(y, x2) * 180/Math.PI;
+    bearing = (bearing + 360) % 360;
+
+    // Relative bearing from my direction (using gyro alpha as compass)
+    let relBearing = bearing - (gameState.gyroAlpha || 0);
+    while (relBearing > 180) relBearing -= 360;
+    while (relBearing < -180) relBearing += 360;
+
+    // Only show if roughly in front (within 60 degrees)
+    if (Math.abs(relBearing) > 60) return null;
+
+    const screenX = window.innerWidth/2 + (relBearing/60) * window.innerWidth * 0.4;
+    // Elevation based on beta
+    const elevationFactor = clamp(1 - dist/showRange, 0.3, 1);
+    const screenY = window.innerHeight * 0.4 * elevationFactor;
+
+    return { x: screenX, y: screenY };
+  }
+
+  function hashCode(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
+    return h;
+  }
+
+  const showRange = 50;
+
+  // ============================================================
+  // CROSSHAIR ON ENEMY CHECK
+  // ============================================================
+  function checkCrosshairOnEnemy() {
+    let locked = false;
+    const ch = document.getElementById('crosshair');
+    if (!ch) return;
+
+    const chRect = ch.getBoundingClientRect();
+    const chCx = chRect.left + chRect.width/2;
+    const chCy = chRect.top + chRect.height/2;
+
+    const markers = document.querySelectorAll('.enemy-marker');
+    gameState.enemyLocked = false;
+    gameState.lockedEnemy = null;
+
+    markers.forEach(marker => {
+      const mRect = marker.getBoundingClientRect();
+      // Extended hitbox for head (top 30% of marker)
+      const headZoneBottom = mRect.top + mRect.height * 0.3;
+      const bodyZoneBottom = mRect.bottom;
+      const inX = chCx >= mRect.left - 20 && chCx <= mRect.right + 20;
+      const inHeadY = chCy >= mRect.top - 15 && chCy <= headZoneBottom;
+      const inBodyY = chCy >= headZoneBottom && chCy <= bodyZoneBottom;
+
+      if (inX && (inHeadY || inBodyY)) {
+        locked = true;
+        const uid = marker.id.replace('emarker-','');
+        gameState.enemyLocked = true;
+        gameState.lockedEnemy = { uid, isHead: inHeadY };
+      }
+    });
+
+    if (locked) { ch.classList.add('enemy-lock'); }
+    else { ch.classList.remove('enemy-lock'); }
+  }
+
+  // ============================================================
+  // FIRE SYSTEM
+  // ============================================================
+  let lastFireTime = 0;
+  let isFiring = false;
+  let autoFireInterval = null;
+
+  function onFirePress() {
+    if (!gameState.inGame || !gameState.isAlive) return;
+    isFiring = true;
+    fire();
+    // Auto fire for auto guns
+    const gun = GUNS[gameState.selectedGuns[gameState.currentSlot]];
+    if (gun && gun.rps > 2) {
+      autoFireInterval = setInterval(() => { if (isFiring) fire(); else clearInterval(autoFireInterval); }, 1000/gun.rps);
+    }
+  }
+
+  function onFireRelease() {
+    isFiring = false;
+    clearInterval(autoFireInterval);
+  }
+
+  function fire() {
+    if (!gameState.inGame || !gameState.isAlive) return;
+    const gunId = gameState.selectedGuns[gameState.currentSlot];
+    const gun = GUNS[gunId];
+    if (!gun) return;
+
+    // Rate limit
+    const now = Date.now();
+    const cooldown = 1000 / gun.rps;
+    if (now - lastFireTime < cooldown) return;
+    lastFireTime = now;
+
+    // Check ammo
+    if (gameState.ammo[gunId] <= 0) {
+      playEmpty();
+      showToast('🔄 Press Reload!');
+      return;
+    }
+
+    if (gameState.isReloading) return;
+
+    // Deduct ammo
+    gameState.ammo[gunId]--;
+    updateAmmoHUD();
+
+    // Play shot sound
+    playShot(gunId);
+
+    // Trigger recoil
+    triggerRecoil(gunId);
+
+    // Muzzle flash
+    showMuzzleFlash();
+
+    // Check if we hit someone
+    if (gameState.enemyLocked && gameState.lockedEnemy) {
+      const { uid, isHead } = gameState.lockedEnemy;
+
+      // Headshot mode check
+      if (gameState.headshotMode && !isHead) return; // only head shots count
+
+      const enemy = roomPlayers[uid];
+      if (!enemy || !enemy.is_alive) return;
+
+      // Calculate distance
+      const dist = getDistance(gameState.myLat, gameState.myLng, enemy.lat || 0, enemy.lng || 0);
+      const rangeRatio = gun.range > 0 ? Math.max(0.1, 1 - (dist / (gun.range * 2))) : 1;
+
+      // Spread penalty when moving
+      if (gameState.movingFast) {
+        const spreadRoll = Math.random();
+        if (spreadRoll < gun.spread * 3) return; // missed due to movement
+      }
+
+      // Calculate damage
+      let dmg = gun.dmg * rangeRatio;
+      const hitLoc = isHead ? 'head' : 'body';
+      if (isHead) dmg *= 2; // headshot multiplier
+      dmg = Math.round(dmg);
+
+      // Show damage number on screen
+      showDamageNumber(dmg, isHead);
+
+      // Send hit event via Supabase
+      sendHitEvent(uid, enemy.username, dmg, hitLoc, gunId);
+      playHit();
+    }
+
+    // Auto reload when empty
+    if (gameState.ammo[gunId] <= 0) {
+      setTimeout(() => startReload(), 200);
+    }
+  }
+
+  async function sendHitEvent(targetId, targetName, damage, hitLoc, gunId) {
+    if (!currentRoom || !currentUser || !currentProfile) return;
+    try {
+      await sb.from('game_events').insert({
+        room_id: currentRoom.id,
+        shooter_id: currentUser.id,
+        shooter_name: currentProfile.username,
+        target_id: targetId,
+        target_name: targetName,
+        event_type: damage >= (roomPlayers[targetId]?.hp || 100) ? 'kill' : 'hit',
+        gun: gunId,
+        damage: damage,
+        hit_location: hitLoc,
+        round_num: gameState.round
+      });
+
+      // If kill
+      const enemyHp = (roomPlayers[targetId]?.hp || 100) - damage;
+      if (enemyHp <= 0) {
+        gameState.kills++;
+        if (hitLoc === 'head') gameState.headshots++;
+        playKill();
+        addKillFeed(currentProfile.username, targetName, gunId, hitLoc === 'head');
+        updateHUDKills();
+        updateRemainingCount();
+      }
+    } catch(e) {}
+  }
+
+  function applyDamage(dmg, hitLoc, shooterName) {
+    if (!gameState.isAlive) return;
+    gameState.hp = Math.max(0, gameState.hp - dmg);
+    updateHPBar();
+
+    // Hit flash
+    const flash = document.getElementById('hit-flash');
+    if (flash) { flash.classList.add('flash'); setTimeout(() => flash.classList.remove('flash'), 150); }
+
+    if (gameState.hp <= 0) {
+      handleDeath();
+    }
+  }
+
+  function handleDeath() {
+    gameState.isAlive = false;
+    gameState.deaths++;
+    const overlay = document.getElementById('dead-overlay');
+    if (overlay) overlay.classList.add('show');
+    let t = 5;
+    const timer = document.getElementById('respawn-timer');
+    const countdown = setInterval(() => {
+      t--;
+      if (timer) timer.textContent = 'Respawning in ' + t + '...';
+      if (t <= 0) {
+        clearInterval(countdown);
+        respawn();
+      }
+    }, 1000);
+  }
+
+  async function respawn() {
+    gameState.isAlive = true;
+    gameState.hp = 100;
+    updateHPBar();
+    const overlay = document.getElementById('dead-overlay');
+    if (overlay) overlay.classList.remove('show');
+    // Reset ammo
+    gameState.selectedGuns.forEach(gid => {
+      if (GUNS[gid]) gameState.ammo[gid] = GUNS[gid].mag;
+    });
+    updateAmmoHUD();
+    await broadcastMyPosition();
+    showToast('👻 Respawned!');
+  }
+
+  // ============================================================
+  // RELOAD
+  // ============================================================
+  function startReload() {
+    if (gameState.isReloading) return;
+    const gunId = gameState.selectedGuns[gameState.currentSlot];
+    const gun = GUNS[gunId];
+    if (!gun) return;
+    if (gameState.ammo[gunId] >= gun.mag) { showToast('Ammo full!'); return; }
+
+    gameState.isReloading = true;
+    playReload();
+    showToast('🔄 Reloading...');
+
+    const wrapEl = document.getElementById('reload-bar-wrap');
+    const barEl = document.getElementById('reload-bar');
+    if (wrapEl && barEl) {
+      wrapEl.style.display = 'block';
+      barEl.style.width = '0%';
+      barEl.style.transition = `width ${gun.reload}s linear`;
+      setTimeout(() => { barEl.style.width = '100%'; }, 50);
+    }
+
+    gameState.reloadTimer = setTimeout(() => {
+      gameState.isReloading = false;
+      gameState.ammo[gunId] = gun.mag;
+      updateAmmoHUD();
+      if (wrapEl) wrapEl.style.display = 'none';
+      showToast('✅ Reloaded!');
+    }, gun.reload * 1000);
+  }
+
+  // ============================================================
+  // SCOPE
+  // ============================================================
+  function toggleScope() {
+    playTap();
+    gameState.scopeActive = !gameState.scopeActive;
+    const scopeEl = document.getElementById('scope-overlay');
+    const btn = document.getElementById('btn-scope');
+    const gunId = gameState.selectedGuns[gameState.currentSlot];
+    const gun = GUNS[gunId];
+
+    if (gameState.scopeActive) {
+      scopeEl.classList.add('active');
+      btn.classList.add('active-scope');
+      // Zoom camera FOV
+      if (camera) {
+        camera.fov = gun?.hasScope ? 20 : 40;
+        camera.updateProjectionMatrix();
+      }
+    } else {
+      scopeEl.classList.remove('active');
+      btn.classList.remove('active-scope');
+      if (camera) { camera.fov = 75; camera.updateProjectionMatrix(); }
+    }
+  }
+
+  // ============================================================
+  // GUN SWITCH
+  // ============================================================
+  function switchGun(slot) {
+    if (slot === gameState.currentSlot) return;
+    playTap();
+    if (gameState.isReloading) {
+      clearTimeout(gameState.reloadTimer);
+      gameState.isReloading = false;
+      document.getElementById('reload-bar-wrap').style.display = 'none';
+    }
+    gameState.currentSlot = slot;
+    updateGunSlotsHUD();
+    updateAmmoHUD();
+    buildGunModel(gameState.selectedGuns[slot]);
+    showToast('🔫 ' + (GUNS[gameState.selectedGuns[slot]]?.name || ''));
+  }
+
+  // ============================================================
+  // HUD FUNCTIONS
+  // ============================================================
+  function buildGameHUD() {
+    updateHPBar();
+    updateGunSlotsHUD();
+    updateAmmoHUD();
+    updateHUDKills();
+    updateHUDTeammates();
+    updateRemainingCount();
+
+    // Init round display
+    document.getElementById('hud-round').textContent = 'R ' + gameState.round + '/' + gameState.maxRounds;
+  }
+
+  function updateHPBar() {
+    const pct = Math.max(0, Math.min(100, (gameState.hp / gameState.maxHp) * 100));
+    const fill = document.getElementById('hud-hp-fill');
+    const val = document.getElementById('hud-hp-val');
+    if (fill) {
+      fill.style.width = pct + '%';
+      fill.style.background = pct > 60 ? 'linear-gradient(90deg,#ff3333,#ff6666)'
+        : pct > 30 ? 'linear-gradient(90deg,#ff8800,#ffaa00)'
+        : 'linear-gradient(90deg,#ff0000,#ff3333)';
+    }
+    if (val) val.textContent = gameState.hp;
+  }
+
+  function updateGunSlotsHUD() {
+    gameState.selectedGuns.forEach((gid, i) => {
+      const gun = GUNS[gid];
+      const slotEl = document.getElementById('gslot-' + i);
+      const iconEl = document.getElementById('gslot-icon-' + i);
+      const nameEl = document.getElementById('gslot-name-' + i);
+      if (slotEl) slotEl.className = 'gun-slot-hud' + (i === gameState.currentSlot ? ' active-gun' : '') + (gid ? '' : ' empty-slot');
+      if (iconEl) iconEl.textContent = gun ? gun.emoji : '—';
+      if (nameEl) nameEl.textContent = gun ? gun.short : '--';
+    });
+  }
+
+  function updateAmmoHUD() {
+    const gunId = gameState.selectedGuns[gameState.currentSlot];
+    const gun = GUNS[gunId];
+    const ammo = gameState.ammo[gunId] || 0;
+    document.getElementById('ammo-count').textContent = ammo;
+    document.getElementById('ammo-label').textContent = '∞ / ' + (gun?.mag || 0);
+    if (ammo <= 0) {
+      document.getElementById('ammo-count').style.color = 'var(--red)';
+    } else if (ammo <= (gun?.mag || 10) * 0.3) {
+      document.getElementById('ammo-count').style.color = 'var(--gold)';
+    } else {
+      document.getElementById('ammo-count').style.color = '#fff';
+    }
+  }
+
+  function updateHUDKills() {
+    const el = document.getElementById('hud-kills');
+    if (el) el.textContent = gameState.kills;
+  }
+
+  function updateRemainingCount() {
+    const enemies = Object.values(roomPlayers).filter(p =>
+      p.user_id !== currentUser?.id && p.team !== gameState.myTeam && p.is_alive
+    );
+    const el = document.getElementById('hud-remaining');
+    if (el) el.textContent = enemies.length;
+  }
+
+  function updateHUDTeammates() {
+    const container = document.getElementById('hud-teammates');
+    if (!container) return;
+    container.innerHTML = '';
+    const teammates = Object.values(roomPlayers).filter(p =>
+      p.user_id !== currentUser?.id && p.team === gameState.myTeam
+    );
+    teammates.forEach(mate => {
+      const div = document.createElement('div');
+      div.className = 'mate-card' + (mate.is_alive ? '' : ' mate-dead');
+      const hpPct = Math.max(0, mate.hp || 0);
+      div.innerHTML = `
+        <div class="mate-avatar-sm" style="background:${currentProfile?.avatar_color||'#FF6B35'}">${mate.username[0].toUpperCase()}</div>
+        <div class="mate-info">
+          <div class="mate-name">${mate.username}</div>
+          <div class="mate-hp-bar"><div class="mate-hp-fill" style="width:${hpPct}%"></div></div>
+        </div>
+        <div style="font-size:0.7rem;color:${mate.is_alive?'var(--green)':'var(--red)'}">
+          ${mate.is_alive ? '❤️' : '💀'}
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function showMuzzleFlash() {
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:absolute;bottom:50px;right:100px;width:20px;height:20px;background:radial-gradient(circle,#FFD700,#FF6B35,transparent);border-radius:50%;animation:flash-out 0.1s ease-out forwards;pointer-events:none;z-index:10;';
+    const gameScreen = document.getElementById('screen-game');
+    if (gameScreen) { gameScreen.appendChild(flash); setTimeout(() => flash.remove(), 120); }
+    const flashStyle = document.getElementById('flash-style');
+    if (!flashStyle) {
+      const s = document.createElement('style');
+      s.id = 'flash-style';
+      s.textContent = '@keyframes flash-out{to{opacity:0;transform:scale(2);}}';
+      document.head.appendChild(s);
+    }
+  }
+
+  function showDamageNumber(dmg, isHead) {
+    const pool = document.getElementById('damage-pool');
+    if (!pool) return;
+    const el = document.createElement('div');
+    el.className = 'dmg-number ' + (isHead ? 'dmg-head' : 'dmg-body');
+    el.textContent = isHead ? '💥' + dmg : dmg;
+    const x = 40 + Math.random() * (window.innerWidth - 80);
+    const y = window.innerHeight * 0.4 + (Math.random() - 0.5) * 100;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    pool.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  function addKillFeed(killerName, victimName, gunId, isHead) {
+    const feed = document.getElementById('kill-feed');
+    if (!feed) return;
+    const entry = document.createElement('div');
+    entry.className = 'kill-entry';
+    const gunEmoji = GUNS[gunId]?.emoji || '🔫';
+    entry.innerHTML = `<span class="kill-orange">${killerName}</span>&nbsp;${gunEmoji}${isHead ? '🎯' : ''}&nbsp;<span class="kill-red">${victimName}</span>`;
+    feed.insertBefore(entry, feed.firstChild);
+    setTimeout(() => entry.remove(), 5000);
+  }
+
+  // ============================================================
+  // MATCH TIMER
+  // ============================================================
+  function startMatchTimer() {
+    matchSeconds = 3600; // 1 hour
+    if (matchTimer) clearInterval(matchTimer);
+    matchTimer = setInterval(() => {
+      matchSeconds--;
+      const m = Math.floor(matchSeconds / 60);
+      const s = matchSeconds % 60;
+      const el = document.getElementById('hud-timer');
+      if (el) el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      if (matchSeconds <= 0) {
+        clearInterval(matchTimer);
+        endMatch(true); // tie
+      }
+    }, 1000);
+  }
+
+  async function endMatch(isTie=false) {
+    if (!gameState.inGame) return;
+    gameState.inGame = false;
+    clearInterval(matchTimer);
+    clearInterval(broadcastInterval);
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    if (realtimeChannel) { realtimeChannel.unsubscribe(); realtimeChannel = null; }
+
+    // Calculate results
+    const myKills = gameState.kills;
+    const myDeaths = gameState.deaths;
+    const myHS = gameState.headshots;
+
+    // Stop camera
+    const video = document.getElementById('camera-video');
+    if (video && video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); }
+
+    // Update profile stats
+    if (currentUser && currentProfile) {
+      const coinsEarned = myKills * 50 + (isTie ? 50 : 100);
+      await sb.from('profiles').update({
+        total_kills: (currentProfile.total_kills || 0) + myKills,
+        total_deaths: (currentProfile.total_deaths || 0) + myDeaths,
+        coins: (currentProfile.coins || 0) + coinsEarned
+      }).eq('id', currentUser.id);
+      currentProfile.total_kills = (currentProfile.total_kills||0) + myKills;
+      currentProfile.total_deaths = (currentProfile.total_deaths||0) + myDeaths;
+      currentProfile.coins = (currentProfile.coins||0) + coinsEarned;
+
+      document.getElementById('res-kills').textContent = myKills;
+      document.getElementById('res-deaths').textContent = myDeaths;
+      document.getElementById('res-hs').textContent = myHS;
+      document.getElementById('res-coins').textContent = '💰 +' + coinsEarned + ' Coins Earned';
+
+      if (isTie) {
+        document.getElementById('results-title').textContent = '🤝 TIE';
+        document.getElementById('results-subtitle').textContent = '1 Hour - Match Drawn';
+      } else {
+        // Determine winner
+        const myTeamKills = Object.values(roomPlayers).filter(p=>p.team===gameState.myTeam).reduce((s,p)=>s+(p.round_kills||0),0);
+        document.getElementById('results-title').textContent = '🏆 VICTORY';
+        document.getElementById('results-subtitle').textContent = 'You fought well!';
+      }
+      updateHomeScreen();
+    }
+
+    showScreen('results');
+  }
+
+  async function cleanupGame() {
+    if (realtimeChannel) { realtimeChannel.unsubscribe(); realtimeChannel = null; }
+    clearInterval(matchTimer);
+    clearInterval(broadcastInterval);
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    const video = document.getElementById('camera-video');
+    if (video && video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); }
+    if (myPlayerRow && currentRoom) {
+      try { await sb.from('game_players').delete().eq('id', myPlayerRow.id); } catch(e) {}
+    }
+    gameState.inGame = false;
+    currentRoom = null;
+    myPlayerRow = null;
+    roomPlayers = {};
+  }
+
+  // ============================================================
+  // VOICE CHAT (PeerJS)
+  // ============================================================
+  function toggleVoice() {
+    playTap();
+    if (gameState.voiceActive) {
+      stopVoice();
+    } else {
+      startVoice();
+    }
+  }
+
+  async function startVoice() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      gameState.localStream = stream;
+      gameState.voiceActive = true;
+      document.getElementById('btn-voice').classList.add('voice-on');
+      showToast('🎙️ Mic ON');
+      // Note: Full PeerJS integration requires a peer server
+      // For free hosting, we use Supabase realtime channel for signaling
+    } catch(e) {
+      showToast('❌ Mic access denied');
+    }
+  }
+
+  function stopVoice() {
+    if (gameState.localStream) {
+      gameState.localStream.getTracks().forEach(t => t.stop());
+      gameState.localStream = null;
+    }
+    gameState.voiceActive = false;
+    document.getElementById('btn-voice').classList.remove('voice-on');
+    showToast('🎙️ Mic OFF');
+  }
+
+  // ============================================================
+  // TRAINING MODE
+  // ============================================================
+  let trainingTargets = [];
+  let trainingCameraStream = null;
+
+  async function startTraining() {
+    playTap();
+    gameState.inTraining = true;
+    gameState.trainingKills = 0;
+    gameState.trainingShots = 0;
+    showScreen('training');
+
+    // Start camera
+    const video = document.getElementById('training-camera');
+    if (video) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        video.srcObject = stream;
+        trainingCameraStream = stream;
+      } catch(e) {}
+    }
+
+    initGyroscope();
+    spawnTrainingTargets();
+    updateTrainingHUD();
+  }
+
+  function spawnTrainingTargets() {
+    const container = document.getElementById('training-targets');
+    if (!container) return;
+    container.innerHTML = '';
+    trainingTargets = [];
+
+    const positions = [
+      {x:15,y:20},{x:40,y:15},{x:65,y:25},{x:80,y:18},
+      {x:25,y:50},{x:55,y:45},{x:70,y:55},{x:10,y:60}
+    ];
+
+    positions.forEach((pos, i) => {
+      const target = document.createElement('div');
+      target.className = 'target alive';
+      target.id = 'target-' + i;
+      target.style.left = pos.x + '%';
+      target.style.top = pos.y + '%';
+      target.innerHTML = `
+        <div class="target-head">🎯</div>
+        <div class="target-body">🪆</div>
+      `;
+      target.addEventListener('click', () => hitTrainingTarget(i));
+      container.appendChild(target);
+      trainingTargets.push({ id: i, alive: true });
+    });
+  }
+
+  function trainingFire() {
+    playShot(gameState.selectedGuns[0] || 'desert');
+    gameState.trainingShots++;
+
+    // Check if crosshair on any target (by checking target positions vs training crosshair)
+    const chEl = document.getElementById('training-crosshair');
+    if (!chEl) { updateTrainingHUD(); return; }
+
+    const chRect = chEl.getBoundingClientRect();
+    const chCx = chRect.left + chRect.width/2;
+    const chCy = chRect.top + chRect.height/2;
+
+    let hit = false;
+    trainingTargets.forEach(t => {
+      if (!t.alive) return;
+      const el = document.getElementById('target-' + t.id);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const expanded = 40;
+      if (chCx >= rect.left - expanded && chCx <= rect.right + expanded &&
+          chCy >= rect.top - expanded && chCy <= rect.bottom + expanded) {
+        hitTrainingTarget(t.id);
+        hit = true;
+      }
+    });
+
+    updateTrainingHUD();
+  }
+
+  function hitTrainingTarget(id) {
+    const t = trainingTargets[id];
+    if (!t || !t.alive) return;
+    t.alive = false;
+    const el = document.getElementById('target-' + id);
+    if (el) el.className = 'target dead';
+
+    gameState.trainingKills++;
+    playHit();
+
+    // Show damage number
+    const pool = document.getElementById('training-damage-pool');
+    if (pool) {
+      const d = document.createElement('div');
+      d.className = 'dmg-number dmg-head';
+      d.textContent = '💥' + Math.floor(Math.random() * 50 + 50);
+      d.style.left = el.getBoundingClientRect().left + 'px';
+      d.style.top = el.getBoundingClientRect().top + 'px';
+      pool.appendChild(d);
+      setTimeout(() => d.remove(), 1200);
+    }
+
+    // Respawn target after delay
+    setTimeout(() => {
+      t.alive = true;
+      if (el) el.className = 'target alive';
+    }, 2000 + Math.random() * 3000);
+
+    updateTrainingHUD();
+  }
+
+  function updateTrainingHUD() {
+    const acc = gameState.trainingShots > 0
+      ? Math.round((gameState.trainingKills / gameState.trainingShots) * 100)
+      : 0;
+    const killEl = document.getElementById('training-score');
+    const shotEl = document.getElementById('training-shots');
+    const accEl = document.getElementById('training-accuracy');
+    if (killEl) killEl.textContent = gameState.trainingKills;
+    if (shotEl) shotEl.textContent = gameState.trainingShots;
+    if (accEl) accEl.textContent = acc + '%';
+  }
+
+  function exitTraining() {
+    playTap();
+    gameState.inTraining = false;
+    if (trainingCameraStream) {
+      trainingCameraStream.getTracks().forEach(t => t.stop());
+      trainingCameraStream = null;
+    }
+    document.getElementById('training-targets').innerHTML = '';
+    showScreen('home');
+  }
+
+  // ============================================================
+  // GUN SELECT MODAL (waiting room)
+  // ============================================================
+  function buildGunSelectModal() {
+    const grid = document.getElementById('gun-select-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const owned = currentProfile?.owned_guns || ['desert','m10','ump'];
+
+    Object.entries(GUNS).forEach(([id, gun]) => {
+      const isOwned = owned.includes(id);
+      const item = document.createElement('div');
+      item.className = 'gun-select-item' + (!isOwned ? ' locked' : '');
+      item.innerHTML = `
+        <div class="gsi-icon">${gun.emoji}</div>
+        <div class="gsi-name">${gun.short}</div>
+        <div class="gsi-locked">${!isOwned ? '🔒 Buy' : gun.type}</div>
+      `;
+      if (isOwned) {
+        item.addEventListener('click', () => selectGunForSlot(id, gun));
+      }
+      grid.appendChild(item);
+    });
+  }
+
+  function selectGunForSlot(id, gun) {
+    playTap();
+    const slot = gameState.selectedSlotForModal;
+    gameState.selectedGuns[slot] = id;
+
+    // Update waiting room display
+    const icon = document.getElementById('waiting-slot-icon-' + slot);
+    const name = document.getElementById('waiting-slot-name-' + slot);
+    if (icon) icon.textContent = gun.emoji;
+    if (name) name.textContent = gun.short;
+
+    // Update player row in DB
+    if (myPlayerRow && currentRoom) {
+      sb.from('game_players').update({ selected_guns: gameState.selectedGuns })
+        .eq('id', myPlayerRow.id).then(() => {});
+    }
+
+    closeModal('gun-select-modal');
+  }
+
+  // ============================================================
+  // HEADSHOT TOGGLE
+  // ============================================================
+  function toggleHeadshot() {
+    playTap();
+    gameState.headshotMode = !gameState.headshotMode;
+    const btn = document.getElementById('btn-headshot');
+    if (btn) btn.classList.toggle('hs-on', gameState.headshotMode);
+    showToast(gameState.headshotMode ? '🎯 Headshot Only: ON' : '🎯 Headshot Only: OFF');
+  }
+
+  // ============================================================
+  // GRAIN EFFECT (post-processing)
+  // ============================================================
+  function initGrain() {
+    const canvas = document.getElementById('grain');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 256;
+    function drawGrain() {
+      const imageData = ctx.createImageData(256, 256);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = Math.random() * 255;
+        d[i] = d[i+1] = d[i+2] = v;
+        d[i+3] = 8;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+    drawGrain();
+    setInterval(drawGrain, 100);
+  }
+
+  // ============================================================
+  // EVENT LISTENERS SETUP
+  // ============================================================
+  function setupEventListeners() {
+    // --- Auth ---
+    document.getElementById('btn-login').addEventListener('click', () => { playTap(); login(); });
+    document.getElementById('btn-register').addEventListener('click', () => { playTap(); register(); });
+    document.getElementById('link-to-register').addEventListener('click', e => { e.preventDefault(); playTap(); showScreen('register'); });
+    document.getElementById('link-to-login').addEventListener('click', e => { e.preventDefault(); playTap(); showScreen('login'); });
+
+    // Enter key for login
+    document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    document.getElementById('reg-confirm').addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
+
+    // --- Home ---
+    document.getElementById('menu-play').addEventListener('click', () => { playTap(); showScreen('lobby'); });
+    document.getElementById('menu-training').addEventListener('click', () => startTraining());
+    document.getElementById('menu-store').addEventListener('click', () => { playTap(); buildStore(); showScreen('store'); });
+    document.getElementById('menu-profile').addEventListener('click', () => { playTap(); showToast('👤 Profile: ' + (currentProfile?.username||'') + ' | Kills: ' + (currentProfile?.total_kills||0)); });
+    document.getElementById('btn-logout').addEventListener('click', () => { playTap(); logout(); });
+    document.getElementById('btn-settings').addEventListener('click', () => { playTap(); showToast('⚙️ Settings coming soon!'); });
+
+    // --- Store ---
+    document.getElementById('store-back').addEventListener('click', () => { playTap(); showScreen('home'); });
+
+    // --- Lobby ---
+    document.getElementById('lobby-back').addEventListener('click', () => { playTap(); showScreen('home'); });
+    document.getElementById('btn-create-room').addEventListener('click', () => createRoom());
+    document.getElementById('btn-join-room').addEventListener('click', () => joinRoom());
+
+    // Mode selection
+    document.getElementById('mode-grid').addEventListener('click', e => {
+      const btn = e.target.closest('.mode-btn');
+      if (!btn) return;
+      playTap();
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      gameState.selectedMode = btn.dataset.mode;
+    });
+
+    // Headshot toggle in lobby
+    document.getElementById('lobby-headshot-toggle').addEventListener('click', function() {
+      playTap();
+      this.classList.toggle('on');
+      gameState.headshotOnly = this.classList.contains('on');
+    });
+
+    // Rounds +/-
+    document.getElementById('rounds-plus').addEventListener('click', () => {
+      playTap();
+      gameState.rounds = Math.min(20, gameState.rounds + 1);
+      document.getElementById('rounds-display').textContent = gameState.rounds;
+    });
+    document.getElementById('rounds-minus').addEventListener('click', () => {
+      playTap();
+      gameState.rounds = Math.max(1, gameState.rounds - 1);
+      document.getElementById('rounds-display').textContent = gameState.rounds;
+    });
+
+    // --- Waiting Room ---
+    document.getElementById('waiting-back').addEventListener('click', async () => {
+      playTap();
+      await cleanupGame();
+      showScreen('lobby');
+    });
+    document.getElementById('btn-start-match').addEventListener('click', () => startMatch());
+
+    // Gun slot picks in waiting room
+    document.getElementById('waiting-gun-slots').addEventListener('click', e => {
+      const slot = e.target.closest('[data-slot]');
+      if (!slot) return;
+      playTap();
+      document.querySelectorAll('.gun-slot-pick').forEach(s => s.classList.remove('selected-slot'));
+      slot.classList.add('selected-slot');
+      gameState.selectedSlotForModal = parseInt(slot.dataset.slot);
+      buildGunSelectModal();
+      openModal('gun-select-modal');
+    });
+
+    // --- Game Controls ---
+    // Fire buttons
+    const fireLeft = document.getElementById('btn-fire-left');
+    const fireRight = document.getElementById('btn-fire-right');
+
+    fireLeft.addEventListener('touchstart', e => { e.preventDefault(); onFirePress(); playTap(); }, { passive: false });
+    fireLeft.addEventListener('touchend', e => { e.preventDefault(); onFireRelease(); }, { passive: false });
+    fireRight.addEventListener('touchstart', e => { e.preventDefault(); onFirePress(); playTap(); }, { passive: false });
+    fireRight.addEventListener('touchend', e => { e.preventDefault(); onFireRelease(); }, { passive: false });
+
+    // Mouse support for desktop testing
+    fireLeft.addEventListener('mousedown', () => onFirePress());
+    fireLeft.addEventListener('mouseup', () => onFireRelease());
+    fireRight.addEventListener('mousedown', () => onFirePress());
+    fireRight.addEventListener('mouseup', () => onFireRelease());
+
+    document.getElementById('btn-scope').addEventListener('click', () => toggleScope());
+    document.getElementById('btn-reload').addEventListener('click', () => { playTap(); startReload(); });
+    document.getElementById('btn-headshot').addEventListener('click', () => toggleHeadshot());
+    document.getElementById('btn-voice').addEventListener('click', () => toggleVoice());
+
+    // Gun slot switches
+    document.getElementById('hud-gun-slots').addEventListener('click', e => {
+      const slot = e.target.closest('[data-slot]');
+      if (slot) switchGun(parseInt(slot.dataset.slot));
+    });
+
+    // Results
+    document.getElementById('btn-play-again').addEventListener('click', () => { playTap(); showScreen('lobby'); });
+    document.getElementById('btn-results-home').addEventListener('click', () => { playTap(); updateHomeScreen(); showScreen('home'); });
+
+    // HUD edit
+    document.getElementById('btn-hud-edit').addEventListener('click', () => {
+      playTap();
+      document.getElementById('game-hud').classList.toggle('edit-mode');
+      showToast('HUD Edit Mode ' + (document.getElementById('game-hud').classList.contains('edit-mode') ? 'ON - Drag buttons' : 'OFF'));
+    });
+
+    // Modal close on outside tap
+    document.getElementById('gun-select-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal('gun-select-modal');
+    });
+  }
+
+  // ============================================================
+  // MAIN INIT
+  // ============================================================
+  async function init() {
+    // Init audio on first interaction
+    document.addEventListener('touchstart', () => {
+      if (!audioCtx) initAudio();
+    }, { once: true });
+    document.addEventListener('mousedown', () => {
+      if (!audioCtx) initAudio();
+    }, { once: true });
+
+    addTouchFeedback();
+    setupEventListeners();
+    initGrain();
+
+    // Check if Supabase is configured
+    if (SUPABASE_URL === 'https://YOUR_PROJECT.supabase.co') {
+      setTimeout(() => {
+        showScreen('login');
+        showToast('⚠️ Setup Supabase URL in index.html!', 5000);
+      }, 2500);
+      return;
+    }
+
+    if (!initSupabase()) {
+      setTimeout(() => showScreen('login'), 2500);
+      return;
+    }
+
+    // Wait for splash animation then check session
+    setTimeout(async () => {
+      await checkSession();
+    }, 2500);
+  }
+
+  // ============================================================
+  // PUBLIC API
+  // ============================================================
+  return {
+    init,
+    closeModal,
+    openModal,
+    exitTraining,
+    trainingFire,
+    login,
+    register,
+    logout
+  };
+})();
+
+// Start app
+document.addEventListener('DOMContentLoaded', StrikeZone.init);
+</script>
+</body>
+</html>
